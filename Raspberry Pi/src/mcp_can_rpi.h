@@ -73,6 +73,7 @@ private:
 
     int spi_channel;
     int spi_baudrate;
+    int cs_pin;
     INT8U gpio_can_interrupt;
 
 /*********************************************************************************************************
@@ -83,7 +84,7 @@ private:
 
     struct timespec delay_spi_can = {0};
 
-    void spiTransfer(uint8_t byte_number, unsigned char *buf);
+    void spiTransfer(uint8_t byte_number, unsigned char *buf, int cs_pin);
 
     void mcp2515_reset(void);                                           // Soft Reset MCP2515
 
@@ -141,27 +142,27 @@ private:
     INT8U sendMsg();                                                        // Send message
 
 public:
-    MCP_CAN(int spi_channel, int spi_baudrate, INT8U gpio_can_interrupt);
-    INT8U begin(INT8U idmodeset, INT8U speedset, INT8U clockset);     // Initilize controller prameters
-    INT8U init_Mask(INT8U num, INT8U ext, INT32U ulData);             // Initilize Mask(s)
-    INT8U init_Mask(INT8U num, INT32U ulData);                        // Initilize Mask(s)
-    INT8U init_Filt(INT8U num, INT8U ext, INT32U ulData);             // Initilize Filter(s)
-    INT8U init_Filt(INT8U num, INT32U ulData);                        // Initilize Filter(s)
-    INT8U setMode(INT8U opMode);                                      // Set operational mode
-    INT8U sendMsgBuf(INT32U id, INT8U ext, INT8U len, INT8U *buf);    // Send message to transmit buffer
-    INT8U sendMsgBuf(INT32U id, INT8U len, INT8U *buf);               // Send message to transmit buffer
-    INT8U readMsgBuf(INT32U *id, INT8U *ext, INT8U *len, INT8U *buf); // Read message from receive buffer
-    INT8U readMsgBuf(INT32U *id, INT8U *len, INT8U *buf);             // Read message from receive buffer
-    INT8U checkReceive(void);                                         // Check for received data
-    INT8U checkError(void);                                           // Check for errors
-    INT8U getError(void);                                             // Check for errors
-    INT8U errorCountRX(void);                                         // Get error count
-    INT8U errorCountTX(void);                                         // Get error count
-    INT8U enOneShotTX(void);                                          // Enable one-shot transmission
-    INT8U disOneShotTX(void);                                         // Disable one-shot transmission
+    MCP_CAN(int spi_channel, int spi_baudrate, INT8U gpio_can_interrupt, int cs_pin);
+    INT8U begin(INT8U idmodeset, INT8U speedset, INT8U clockset);              // Initilize controller prameters
+    INT8U init_Mask(INT8U num, INT8U ext, INT32U ulData);                      // Initilize Mask(s)
+    INT8U init_Mask(INT8U num, INT32U ulData);                                 // Initilize Mask(s)
+    INT8U init_Filt(INT8U num, INT8U ext, INT32U ulData);                      // Initilize Filter(s)
+    INT8U init_Filt(INT8U num, INT32U ulData);                                 // Initilize Filter(s)
+    INT8U setMode(INT8U opMode);                                               // Set operational mode
+    INT8U sendMsgBuf(INT32U id, INT8U ext, INT8U len, INT8U *buf);             // Send message to transmit buffer
+    INT8U sendMsgBuf(INT32U id, INT8U len, INT8U *buf);                        // Send message to transmit buffer
+    INT8U readMsgBuf(INT32U *id, INT8U *ext, INT8U *len, INT8U *buf);          // Read message from receive buffer
+    INT8U readMsgBuf(INT32U *id, INT8U *len, INT8U *buf);                      // Read message from receive buffer
+    INT8U checkReceive(void);                                                  // Check for received data
+    INT8U checkError(void);                                                    // Check for errors
+    INT8U getError(void);                                                      // Check for errors
+    INT8U errorCountRX(void);                                                  // Get error count
+    INT8U errorCountTX(void);                                                  // Get error count
+    INT8U enOneShotTX(void);                                                   // Enable one-shot transmission
+    INT8U disOneShotTX(void);                                                  // Disable one-shot transmission
 
-    INT8U queryCharger(float voltage, float current, int address, int charge);   // Start charging
-    INT8U queryBMS(int moduleID, int shuntVoltageMillivolts);         // Query BMS
+    INT8U queryCharger(float voltage, float current, int address, int charge); // Start charging
+    INT8U queryBMS(int moduleID, int shuntVoltageMillivolts);                  // Query BMS
 
     bool setupInterruptGpio();
     bool setupSpi();

@@ -3,18 +3,11 @@
 #include "mcp_can.h"
 #include <SPI.h>
 
-// CAN config
-#define CAN0Speed     CAN_250KBPS
-#define CAN0IntPin    49
-#define CAN0CS        53
-MCP_CAN CAN0(CAN0CS);
-#define CAN1Speed     CAN_500KBPS
-#define CAN1IntPin    46
-#define CAN1CS        48
-MCP_CAN CAN1(CAN1CS);
+#include "setup_config.h"
 
-// Setup parameters
-#define chargerID    0x1806E7F4
+// CAN instances
+MCP_CAN CAN0(CAN0CS);
+MCP_CAN CAN1(CAN1CS);
 
 // Timer help
 int startMillis0 = 0;
@@ -23,42 +16,11 @@ int period0      = 1000;
 int period1      = 10000;
 
 // Functions
-void parseMessage(INT32U id, INT8U len, INT8U *buf);
+void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
 void checkData();
+void printData();
 
 // Data structures
-struct BMSData
-{
-    int cellVoltagemV[12]        = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int cellVoltagemVUpdated[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int temperatures[2]          = { 0, 0 };
-    int temperaturesUpdated[2]   = { 0, 0 };
-};
-
-struct SEVCONData
-{
-    int totalVoltagemV        = 0;
-    int totalVoltagemVUpdated = 0;
-};
-
-struct CHARGERData
-{
-    int Vtotal          = 0;
-    int VtotalUpdated   = 0;
-    int Icharge         = 0;
-    int IchargeUpdated  = 0;
-    int flags[5]        = { 0, 0, 0, 0, 0 };
-    int flagsUpdated[5] = { 0, 0, 0, 0, 0 };
-};
-
-struct Data
-{
-    int                allOK;
-    struct BMSData     BMS[3];
-    struct SEVCONData  SEVCON;
-    struct CHARGERData CHARGER;
-};
-
 struct Data data;
 
 /*
@@ -104,10 +66,8 @@ void loop()
         INT8U  buf[len] = { 0, 0 };
 
         CAN0.sendMsgBuf(id, ext, len, buf);
-        Serial.println("Sent message 0!");
 
         CAN1.sendMsgBuf(id, ext, len, buf);
-        Serial.println("Sent message 1!");
 
         startMillis0 = currentMillis;
     }
@@ -119,81 +79,116 @@ void loop()
         startMillis1 = currentMillis;
     }
 
-    if (!digitalRead(CAN0IntPin)) // New message on CAN0
+    if (!digitalRead(CAN0IntPin)) // New message on CAN 0
     {
         INT32U id;
         INT8U  len = 0;
         INT8U  buf[8];
 
         CAN0.readMsgBuf(&id, &len, buf);
-        parseMessage(id, len, buf);
+        parseMessage(id, len, buf, 0);
     }
 
-    if (!digitalRead(CAN1IntPin))     // New message on CAN1
+    if (!digitalRead(CAN1IntPin)) // New message on CAN 1
     {
         INT32U id;
         INT8U  len = 0;
         INT8U  buf[8];
 
-        CAN1.readMsgBuf(&id, &len, buf);
-        parseMessage(id, len, buf);
+        CAN0.readMsgBuf(&id, &len, buf);
+        parseMessage(id, len, buf, 1);
     }
 }
 
 
-void parseMessage(INT32U id, INT8U len, INT8U *buf)
+void parseMessage(INT32U id, INT8U len, INT8U *buf, int busN)
 {
     id = id & 0x1FFFFFFF;
 
-    // Charger
-    if (id == chargerID)
+    if (busN == 0)
     {
-        // Voltage measured by charger
-        data.CHARGER.Vtotal        = ((buf[0] << 8) + buf[1]) * 100;
-        data.CHARGER.VtotalUpdated = 1;
-        // Instant charging current
-        data.CHARGER.Icharge        = ((buf[2] << 8) + buf[3]) * 100;
-        data.CHARGER.IchargeUpdated = 1;
-        // Charger flags
-        int flags = buf[4];
-        data.CHARGER.flags[0] = (flags >> 7) & 0x1; // Flag 0
-        data.CHARGER.flags[1] = (flags >> 6) & 0x1; // Flag 1
-        data.CHARGER.flags[2] = (flags >> 5) & 0x1; // Flag 2
-        data.CHARGER.flags[3] = (flags >> 4) & 0x1; // Flag 3
-        data.CHARGER.flags[4] = (flags >> 3) & 0x1; // Flag 4
-    }
-
-    // BMS Modules
-    if ((id > 300) && (id < 300 + 16 * 10))
-    {
-        // BMS number (1-16)
-        int n = (id - 300) / 10;
-        // Message number (0-3)
-        int m = (id - 300 - n * 10 - 1);
-
-        // Voltage frame
-        if (m < 3)
+        // Charger
+        if ((id == chargerID))
         {
-            for (int i = 0; i < 4; i++)
-            {
-                // i = number of cell within message
-                data.BMS[n].cellVoltagemV[m * 4 + i]        = (buf[2 * i] << 8) + buf[2 * i + 1];
-                data.BMS[n].cellVoltagemVUpdated[m * 4 + i] = 1;
-            }
+            // Voltage measured by charger
+            data.CHARGER.Vtotal        = ((buf[0] << 8) + buf[1]) * 100;
+            data.CHARGER.VtotalUpdated = 1;
+            // Instant charging current
+            data.CHARGER.Icharge        = ((buf[2] << 8) + buf[3]) * 100;
+            data.CHARGER.IchargeUpdated = 1;
+            // Charger flags
+            int flags = buf[4];
+            data.CHARGER.flags[0] = (flags >> 7) & 0x1; // Flag 0
+            data.CHARGER.flags[1] = (flags >> 6) & 0x1; // Flag 1
+            data.CHARGER.flags[2] = (flags >> 5) & 0x1; // Flag 2
+            data.CHARGER.flags[3] = (flags >> 4) & 0x1; // Flag 3
+            data.CHARGER.flags[4] = (flags >> 3) & 0x1; // Flag 4
         }
 
-        // Temperature frame
-        else if (m == 3)
+        // BMS Modules
+        if ((id > 300) && (id < 300 + 3 * 10))
         {
-            for (int i = 0; i < 2; i++)
+            // BMS number (1-16)
+            int n = (id - 300) / 10;
+            // Message number (0-3)
+            int m = (id - 300 - n * 10 - 1);
+
+            // Voltage frame
+            if (m < 3)
             {
-                data.BMS[n].temperatures[i]        = buf[i] - 40;
-                data.BMS[n].temperaturesUpdated[i] = 1;
+                for (int i = 0; i < 4; i++)
+                {
+                    // i = number of cell within message
+                    data.BMS[n].cellVoltagemV[m * 4 + i]        = (buf[2 * i] << 8) + buf[2 * i + 1];
+                    data.BMS[n].cellVoltagemVUpdated[m * 4 + i] = 1;
+                }
+            }
+
+            // Temperature frame
+            else if (m == 3)
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    data.BMS[n].temperatures[i]        = buf[i] - 40;
+                    data.BMS[n].temperaturesUpdated[i] = 1;
+                }
             }
         }
     }
+
+
 
     // SEVCON controller
+    if (busN == 1)
+    {
+        switch (id)
+        {
+        case 0x274:
+            // TPDO1
+            data.SEVCON.TPDO1_1 = (buf[0] << 8) + buf[1];
+            break;
+
+        case 0x195:
+            // TPDO2
+
+            break;
+
+        case 0x146:
+            // TPDO3
+
+            break;
+
+        case 0x168:
+            // TPDO4
+
+            break;
+
+        case 0x370:
+            // TPDO5
+
+            break;
+        }
+    }
 }
 
 
@@ -216,8 +211,6 @@ void checkData()
         }
         if (!allUpdated)
         {
-            Serial.print("Some problem in BMS ");
-            Serial.println(i);
             allOK = 0;
         }
     }
@@ -232,7 +225,6 @@ void checkData()
     }
     if (!allUpdated)
     {
-        Serial.print("Some problem in Charger ");
         allOK = 0;
     }
 
@@ -240,4 +232,56 @@ void checkData()
     allUpdated = 1;
 
     data.allOK = allOK;
+}
+
+
+void printData()
+{
+    char buffer[128];
+
+    Serial.print("{");
+    Serial.println("data: {");
+
+    sprintf(buffer, "allOK: %d", data.allOK);
+    Serial.println(buffer);
+
+    Serial.println("BMS: [{");
+    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d]", data.BMS[0].cellVoltagemV[0], data.BMS[0].cellVoltagemV[1], data.BMS[0].cellVoltagemV[2], data.BMS[0].cellVoltagemV[3], data.BMS[0].cellVoltagemV[4], data.BMS[0].cellVoltagemV[5], data.BMS[0].cellVoltagemV[6], data.BMS[0].cellVoltagemV[7], data.BMS[0].cellVoltagemV[8], data.BMS[0].cellVoltagemV[9], data.BMS[0].cellVoltagemV[10], data.BMS[0].cellVoltagemV[11]);
+    Serial.println(buffer);
+    sprintf(buffer, "temperatures: [%d, %d]", data.BMS[0].temperatures[0], data.BMS[0].temperatures[1]);
+    Serial.println(buffer);
+
+    Serial.println("},");
+    Serial.println("{");
+    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d]", data.BMS[1].cellVoltagemV[0], data.BMS[1].cellVoltagemV[1], data.BMS[1].cellVoltagemV[2], data.BMS[1].cellVoltagemV[3], data.BMS[1].cellVoltagemV[4], data.BMS[1].cellVoltagemV[5], data.BMS[1].cellVoltagemV[6], data.BMS[1].cellVoltagemV[7], data.BMS[1].cellVoltagemV[8], data.BMS[1].cellVoltagemV[9], data.BMS[1].cellVoltagemV[10], data.BMS[1].cellVoltagemV[11]);
+    Serial.println(buffer);
+    sprintf(buffer, "temperatures: [%d, %d]", data.BMS[1].temperatures[0], data.BMS[1].temperatures[1]);
+    Serial.println(buffer);
+
+    Serial.println("},");
+    Serial.println("{");
+    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d]", data.BMS[2].cellVoltagemV[0], data.BMS[2].cellVoltagemV[1], data.BMS[2].cellVoltagemV[2], data.BMS[2].cellVoltagemV[3], data.BMS[2].cellVoltagemV[4], data.BMS[2].cellVoltagemV[5], data.BMS[2].cellVoltagemV[6], data.BMS[2].cellVoltagemV[7], data.BMS[2].cellVoltagemV[8], data.BMS[2].cellVoltagemV[9], data.BMS[2].cellVoltagemV[10], data.BMS[2].cellVoltagemV[11]);
+    Serial.println(buffer);
+    sprintf(buffer, "temperatures: [%d, %d]", data.BMS[2].temperatures[0], data.BMS[2].temperatures[1]);
+    Serial.println(buffer);
+
+    Serial.println("}");
+    Serial.println("[,");
+    Serial.println("SEVCON: {");
+    sprintf(buffer, "TPDO1_1: %d", data.SEVCON.TPDO1_1);
+    Serial.println(buffer);
+    Serial.println("},");
+
+    Serial.println("CHARGER: {");
+    sprintf(buffer, "Vtotal: %d,", data.CHARGER.Vtotal);
+    Serial.println(buffer);
+    sprintf(buffer, "Icharge: %d,", data.CHARGER.Icharge);
+    Serial.println(buffer);
+    sprintf(buffer, "flags: [%d, %d, %d, %d, %d]", data.CHARGER.flags[0], data.CHARGER.flags[1], data.CHARGER.flags[2], data.CHARGER.flags[3], data.CHARGER.flags[4]);
+    Serial.println(buffer);
+    Serial.println("}");
+    Serial.println("}");
+    Serial.println("}");
+
+    Serial.println("\n\n");
 }

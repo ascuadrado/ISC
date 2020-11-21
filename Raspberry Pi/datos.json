@@ -1,0 +1,26 @@
+{
+    "data": {
+        "allOK": 1,
+        "BMS": [{
+                "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                "temperatures": [0, 0]
+            },
+            {
+                "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                "temperatures": [0, 0]
+            },
+            {
+                "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                "temperatures": [0, 0]
+            }
+        ],
+        "SEVCON": {
+            "TPDO1_1": 0
+        },
+        "CHARGER": {
+            "Vtotal": 0,
+            "Icharge": 0,
+            "flags": [0, 0, 0, 0, 0]
+        }
+    }
+}

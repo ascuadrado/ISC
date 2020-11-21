@@ -29,6 +29,7 @@
 
 // CAN setup
 #define IntPIN        25
+#define CSPIN         8
 #define SPIBus        0
 #define CANSpeed      CAN_500KBPS
 #define MCPClock      MCP_8MHZ
@@ -49,7 +50,7 @@ void sendCANMsg();
 
 // New MCP_CAN instance
 // MCP_CAN(int spi_channel, int spi_baudrate, INT8U gpio_can_interrupt);
-MCP_CAN CAN(SPIBus, 10000000, IntPIN);
+MCP_CAN CAN(SPIBus, 10000000, IntPIN, CSPIN);
 
 int main()
 {
@@ -66,7 +67,7 @@ int main()
     CAN.setupSpi();
     printf("GPIO Pins initialized & SPI started\n");
 
-    // Attach interrupt to read incoming messages
+    // Attach interrupt to read incoming messages and timer
     signal(SIGALRM, sendCANMsg);
     ualarm(DELAY, DELAY);
 

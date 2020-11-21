@@ -44,13 +44,13 @@
 ** Function name:           spiTransfer
 ** Descriptions:            Performs a spi transfer on Raspberry Pi (using wiringPi)
 *********************************************************************************************************/
-void MCP_CAN::spiTransfer(uint8_t byte_number, unsigned char *buf)
+void MCP_CAN::spiTransfer(uint8_t byte_number, unsigned char *buf, int cs_pin)
 {
 #ifdef __arm__
-    digitalWrite(16, LOW);
+    digitalWrite(cs_pin, LOW);
     wiringPiSPIDataRW(spi_channel, buf, byte_number);
     nanosleep(&delay_spi_can, (struct timespec *)NULL);
-    digitalWrite(16, HIGH);
+    digitalWrite(cs_pin, HIGH);
 #endif
 }
 
