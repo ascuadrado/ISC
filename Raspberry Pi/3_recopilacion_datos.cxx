@@ -21,7 +21,7 @@ MCP_CAN CAN0(0, 1000000, CAN1IntPin, CAN1CS);
 #define period0    1000
 
 // Functions
-void parseMessage(INT32U id, INT8U len, INT8U *buf, int busN);
+void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
 void checkData();
 void timer0();
 void setup();
@@ -225,6 +225,7 @@ void checkData()
 
     // Check Charger Data
     int allUpdated = 1;
+
     allUpdated *= data.CHARGER.VtotalUpdated;
     allUpdated *= data.CHARGER.IchargeUpdated;
     for (int i = 0; i < 5; i++)

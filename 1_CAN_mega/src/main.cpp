@@ -34,13 +34,13 @@ void setup()
 
     while (CAN0.begin(MCP_ANY, CAN0Speed, MCP_8MHZ))
     {
-        Serial.print("Failed starting CAN");
+        Serial.print("Failed starting CAN 0");
         delay(1000);
     }
 
     while (CAN1.begin(MCP_ANY, CAN1Speed, MCP_8MHZ))
     {
-        Serial.print("Failed starting CAN");
+        Serial.print("Failed starting CAN 1");
         delay(1000);
     }
 
@@ -51,6 +51,7 @@ void setup()
     Serial.print(CAN0Speed);
     Serial.print(" , CAN1 - ");
     Serial.print(CAN1Speed);
+    Serial.println();
 }
 
 
@@ -58,28 +59,32 @@ void loop()
 {
     int currentMillis = millis();
 
-    if (currentMillis - startMillis0 >= period0) // Timer0
+    if (currentMillis - startMillis0 >= period0)   // Timer0
     {
         INT32U id       = 0x12C;
         INT8U  ext      = 1;
         INT8U  len      = 2;
-        INT8U  buf[len] = { 0, 0 };
+        INT8U  buf[len] = { (shuntVoltagemV >> 8) & 0xFF, shuntVoltagemV & 0xFF };
 
+        // Query all BMS
         CAN0.sendMsgBuf(id, ext, len, buf);
+        CAN0.sendMsgBuf(id + 10, ext, len, buf);
+        CAN0.sendMsgBuf(id + 20, ext, len, buf);
 
-        CAN1.sendMsgBuf(id, ext, len, buf);
+        // Test msg for BUS 1
+        //CAN1.sendMsgBuf(id, ext, len, buf);
 
         startMillis0 = currentMillis;
     }
 
-    if (currentMillis - startMillis1 >= period1) // Timer1
+    if (currentMillis - startMillis1 >= period1)   // Timer1
     {
         checkData();
-
+        printData();
         startMillis1 = currentMillis;
     }
 
-    if (!digitalRead(CAN0IntPin)) // New message on CAN 0
+    if (!digitalRead(CAN0IntPin))   // New message on CAN 0
     {
         INT32U id;
         INT8U  len = 0;
@@ -89,21 +94,27 @@ void loop()
         parseMessage(id, len, buf, 0);
     }
 
-    if (!digitalRead(CAN1IntPin)) // New message on CAN 1
+    if (!digitalRead(CAN1IntPin))   // New message on CAN 1
     {
         INT32U id;
         INT8U  len = 0;
         INT8U  buf[8];
 
-        CAN0.readMsgBuf(&id, &len, buf);
+        CAN1.readMsgBuf(&id, &len, buf);
+
         parseMessage(id, len, buf, 1);
     }
 }
 
 
-void parseMessage(INT32U id, INT8U len, INT8U *buf, int busN)
+void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 {
     id = id & 0x1FFFFFFF;
+
+    char message[128];
+
+    sprintf(message, "Message on Bus %d, id: %lu, len: %d", busN, id, len);
+    Serial.println(message);
 
     if (busN == 0)
     {
@@ -143,7 +154,6 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, int busN)
                     data.BMS[n].cellVoltagemVUpdated[m * 4 + i] = 1;
                 }
             }
-
             // Temperature frame
             else if (m == 3)
             {
@@ -155,8 +165,6 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, int busN)
             }
         }
     }
-
-
 
     // SEVCON controller
     if (busN == 1)
@@ -201,14 +209,17 @@ void checkData()
     {
         // i = num BMS
         int allUpdated = 1;
+
         for (int j = 0; j < 12; j++)
         {
             allUpdated *= data.BMS[i].cellVoltagemVUpdated[j];
         }
+
         for (int j = 0; j < 2; j++)
         {
             allUpdated *= data.BMS[i].temperaturesUpdated[j];
         }
+
         if (!allUpdated)
         {
             allOK = 0;
@@ -217,12 +228,15 @@ void checkData()
 
     // Check Charger Data
     int allUpdated = 1;
+
     allUpdated *= data.CHARGER.VtotalUpdated;
     allUpdated *= data.CHARGER.IchargeUpdated;
+
     for (int i = 0; i < 5; i++)
     {
         allUpdated *= data.CHARGER.flags[i];
     }
+
     if (!allUpdated)
     {
         allOK = 0;
@@ -242,33 +256,33 @@ void printData()
     Serial.print("{");
     Serial.println("data: {");
 
-    sprintf(buffer, "allOK: %d", data.allOK);
+    sprintf(buffer, "allOK: %d,", data.allOK);
     Serial.println(buffer);
 
     Serial.println("BMS: [{");
-    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d]", data.BMS[0].cellVoltagemV[0], data.BMS[0].cellVoltagemV[1], data.BMS[0].cellVoltagemV[2], data.BMS[0].cellVoltagemV[3], data.BMS[0].cellVoltagemV[4], data.BMS[0].cellVoltagemV[5], data.BMS[0].cellVoltagemV[6], data.BMS[0].cellVoltagemV[7], data.BMS[0].cellVoltagemV[8], data.BMS[0].cellVoltagemV[9], data.BMS[0].cellVoltagemV[10], data.BMS[0].cellVoltagemV[11]);
+    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d],", data.BMS[0].cellVoltagemV[0], data.BMS[0].cellVoltagemV[1], data.BMS[0].cellVoltagemV[2], data.BMS[0].cellVoltagemV[3], data.BMS[0].cellVoltagemV[4], data.BMS[0].cellVoltagemV[5], data.BMS[0].cellVoltagemV[6], data.BMS[0].cellVoltagemV[7], data.BMS[0].cellVoltagemV[8], data.BMS[0].cellVoltagemV[9], data.BMS[0].cellVoltagemV[10], data.BMS[0].cellVoltagemV[11]);
     Serial.println(buffer);
     sprintf(buffer, "temperatures: [%d, %d]", data.BMS[0].temperatures[0], data.BMS[0].temperatures[1]);
     Serial.println(buffer);
 
     Serial.println("},");
     Serial.println("{");
-    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d]", data.BMS[1].cellVoltagemV[0], data.BMS[1].cellVoltagemV[1], data.BMS[1].cellVoltagemV[2], data.BMS[1].cellVoltagemV[3], data.BMS[1].cellVoltagemV[4], data.BMS[1].cellVoltagemV[5], data.BMS[1].cellVoltagemV[6], data.BMS[1].cellVoltagemV[7], data.BMS[1].cellVoltagemV[8], data.BMS[1].cellVoltagemV[9], data.BMS[1].cellVoltagemV[10], data.BMS[1].cellVoltagemV[11]);
+    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d],", data.BMS[1].cellVoltagemV[0], data.BMS[1].cellVoltagemV[1], data.BMS[1].cellVoltagemV[2], data.BMS[1].cellVoltagemV[3], data.BMS[1].cellVoltagemV[4], data.BMS[1].cellVoltagemV[5], data.BMS[1].cellVoltagemV[6], data.BMS[1].cellVoltagemV[7], data.BMS[1].cellVoltagemV[8], data.BMS[1].cellVoltagemV[9], data.BMS[1].cellVoltagemV[10], data.BMS[1].cellVoltagemV[11]);
     Serial.println(buffer);
     sprintf(buffer, "temperatures: [%d, %d]", data.BMS[1].temperatures[0], data.BMS[1].temperatures[1]);
     Serial.println(buffer);
 
     Serial.println("},");
     Serial.println("{");
-    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d]", data.BMS[2].cellVoltagemV[0], data.BMS[2].cellVoltagemV[1], data.BMS[2].cellVoltagemV[2], data.BMS[2].cellVoltagemV[3], data.BMS[2].cellVoltagemV[4], data.BMS[2].cellVoltagemV[5], data.BMS[2].cellVoltagemV[6], data.BMS[2].cellVoltagemV[7], data.BMS[2].cellVoltagemV[8], data.BMS[2].cellVoltagemV[9], data.BMS[2].cellVoltagemV[10], data.BMS[2].cellVoltagemV[11]);
+    sprintf(buffer, "cellVoltagemV: [%d, %d, %d, %d, %d, %d, %d, %d, %d,%d ,%d ,%d],", data.BMS[2].cellVoltagemV[0], data.BMS[2].cellVoltagemV[1], data.BMS[2].cellVoltagemV[2], data.BMS[2].cellVoltagemV[3], data.BMS[2].cellVoltagemV[4], data.BMS[2].cellVoltagemV[5], data.BMS[2].cellVoltagemV[6], data.BMS[2].cellVoltagemV[7], data.BMS[2].cellVoltagemV[8], data.BMS[2].cellVoltagemV[9], data.BMS[2].cellVoltagemV[10], data.BMS[2].cellVoltagemV[11]);
     Serial.println(buffer);
     sprintf(buffer, "temperatures: [%d, %d]", data.BMS[2].temperatures[0], data.BMS[2].temperatures[1]);
     Serial.println(buffer);
 
     Serial.println("}");
-    Serial.println("[,");
+    Serial.println("],");
     Serial.println("SEVCON: {");
-    sprintf(buffer, "TPDO1_1: %d", data.SEVCON.TPDO1_1);
+    sprintf(buffer, "%cTPDO1_1%c: %d", '"', '"', data.SEVCON.TPDO1_1);
     Serial.println(buffer);
     Serial.println("},");
 
@@ -279,8 +293,8 @@ void printData()
     Serial.println(buffer);
     sprintf(buffer, "flags: [%d, %d, %d, %d, %d]", data.CHARGER.flags[0], data.CHARGER.flags[1], data.CHARGER.flags[2], data.CHARGER.flags[3], data.CHARGER.flags[4]);
     Serial.println(buffer);
-    Serial.println("}");
-    Serial.println("}");
+    Serial.print("}");
+    Serial.print("}");
     Serial.println("}");
 
     Serial.println("\n\n");

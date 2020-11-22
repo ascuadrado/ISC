@@ -1,14 +1,15 @@
 // CAN config
-#define CAN0Speed     CAN_250KBPS
-#define CAN0IntPin    49
-#define CAN0CS        53
+#define CAN0Speed         CAN_250KBPS
+#define CAN0IntPin        49
+#define CAN0CS            53
 
-#define CAN1Speed     CAN_500KBPS
-#define CAN1IntPin    46
-#define CAN1CS        48
+#define CAN1Speed         CAN_250KBPS
+#define CAN1IntPin        46
+#define CAN1CS            48
 
 // Setup parameters
-#define chargerID     0x1806E7F4
+#define chargerID         0x1806E7F4
+#define shuntVoltagemV    0
 
 // Data structures
 struct BMSData
