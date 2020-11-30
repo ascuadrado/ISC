@@ -84,7 +84,7 @@ private:
 
     struct timespec delay_spi_can = {0};
 
-    void spiTransfer(uint8_t byte_number, unsigned char *buf, int cs_pin);
+    void spiTransfer(uint8_t byte_number, unsigned char *buf);
 
     void mcp2515_reset(void);                                           // Soft Reset MCP2515
 
