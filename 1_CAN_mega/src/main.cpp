@@ -12,8 +12,9 @@ MCP_CAN CAN1(CAN1CS);
 // Timer help
 int startMillis0 = 0;
 int startMillis1 = 0;
-int period0      = 1000;
-int period1      = 10000;
+int period0      = 300;
+int period1      = 3000;
+int counter      = 0;
 
 // Functions
 void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
@@ -45,7 +46,7 @@ void setup()
     }
 
     CAN0.setMode(MCP_NORMAL);
-    CAN1.setMode(MCP_NORMAL);
+    CAN1.setMode(MCP_LISTENONLY);
 
     Serial.print("CAN ready: CAN0 - ");
     Serial.print(CAN0Speed);
@@ -67,14 +68,25 @@ void loop()
         INT8U  buf[len] = { (shuntVoltagemV >> 8) & 0xFF, shuntVoltagemV & 0xFF };
 
         // Query all BMS
-        CAN0.sendMsgBuf(id, ext, len, buf);
-        CAN0.sendMsgBuf(id + 10, ext, len, buf);
-        CAN0.sendMsgBuf(id + 20, ext, len, buf);
+        if (counter == 0)
+        {
+            CAN0.sendMsgBuf(id, ext, len, buf);
+        }
+        else if (counter == 1)
+        {
+            CAN0.sendMsgBuf(id + 10, ext, len, buf);
+        }
+        else if (counter == 2)
+        {
+            CAN0.sendMsgBuf(id + 20, ext, len, buf);
+        }
 
         // Test msg for BUS 1
         //CAN1.sendMsgBuf(id, ext, len, buf);
 
         startMillis0 = currentMillis;
+        counter++;
+        counter = counter % 3;
     }
 
     if (currentMillis - startMillis1 >= period1)   // Timer1
@@ -101,7 +113,6 @@ void loop()
         INT8U  buf[8];
 
         CAN1.readMsgBuf(&id, &len, buf);
-
         parseMessage(id, len, buf, 1);
     }
 }
@@ -113,8 +124,18 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 
     char message[128];
 
-    sprintf(message, "Message on Bus %d, id: %lu, len: %d", busN, id, len);
-    Serial.println(message);
+    if (busN == 1)
+    {
+        sprintf(message, "Message on Bus %d, id: 0x%lx, len: %d", busN, id, len);
+        Serial.println(message);
+        for (int i = 0; i < len; i++)
+        {
+            sprintf(message, " 0x%.2X", buf[i]);
+            Serial.print(message);
+        }
+        Serial.println("\n\n");
+    }
+    return;
 
     if (busN == 0)
     {
@@ -129,11 +150,11 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
             data.CHARGER.IchargeUpdated = 1;
             // Charger flags
             int flags = buf[4];
-            data.CHARGER.flags[0] = (flags >> 7) & 0x1; // Flag 0
-            data.CHARGER.flags[1] = (flags >> 6) & 0x1; // Flag 1
-            data.CHARGER.flags[2] = (flags >> 5) & 0x1; // Flag 2
-            data.CHARGER.flags[3] = (flags >> 4) & 0x1; // Flag 3
-            data.CHARGER.flags[4] = (flags >> 3) & 0x1; // Flag 4
+            data.CHARGER.flags[0] = (flags >> 7) & 0x1;     // Flag 0
+            data.CHARGER.flags[1] = (flags >> 6) & 0x1;     // Flag 1
+            data.CHARGER.flags[2] = (flags >> 5) & 0x1;     // Flag 2
+            data.CHARGER.flags[3] = (flags >> 4) & 0x1;     // Flag 3
+            data.CHARGER.flags[4] = (flags >> 3) & 0x1;     // Flag 4
         }
 
         // BMS Modules
@@ -173,27 +194,56 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
         {
         case 0x274:
             // TPDO1
-            data.SEVCON.TPDO1_1 = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO1_1        = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO1_2        = (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO1_3        = ((int16_t)buf[4] << 8) + buf[5];
+            data.SEVCON.TPDO1_4        = (buf[6] << 8) + buf[7];
+            data.SEVCON.TPDO1_1Updated = 1;
+            data.SEVCON.TPDO1_2Updated = 1;
+            data.SEVCON.TPDO1_3Updated = 1;
+            data.SEVCON.TPDO1_4Updated = 1;
             break;
 
         case 0x195:
             // TPDO2
-
+            data.SEVCON.TPDO2_1        = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO2_2        = buf[2];
+            data.SEVCON.TPDO2_3        = (buf[3] << 8) + buf[4];
+            data.SEVCON.TPDO2_1Updated = 1;
+            data.SEVCON.TPDO2_2Updated = 1;
+            data.SEVCON.TPDO2_3Updated = 1;
             break;
 
         case 0x146:
             // TPDO3
-
+            data.SEVCON.TPDO3_1        = ((int16_t)buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO3_2        = (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO3_3        = (buf[4] << 8) + buf[5];
+            data.SEVCON.TPDO3_4        = (buf[6] << 8) + buf[7];
+            data.SEVCON.TPDO3_1Updated = 1;
+            data.SEVCON.TPDO3_2Updated = 1;
+            data.SEVCON.TPDO3_3Updated = 1;
+            data.SEVCON.TPDO3_4Updated = 1;
             break;
 
         case 0x168:
             // TPDO4
-
+            data.SEVCON.TPDO4_1        = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO4_2        = (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO4_3        = (buf[4] << 8) + buf[5];
+            data.SEVCON.TPDO4_4        = (buf[6] << 8) + buf[7];
+            data.SEVCON.TPDO4_1Updated = 1;
+            data.SEVCON.TPDO4_2Updated = 1;
+            data.SEVCON.TPDO4_3Updated = 1;
+            data.SEVCON.TPDO4_4Updated = 1;
             break;
 
         case 0x370:
             // TPDO5
-
+            data.SEVCON.TPDO5_1        = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO5_2        = (buf[4] << 24) + (buf[5] << 16) + (buf[6] << 8) + buf[7];
+            data.SEVCON.TPDO5_1Updated = 1;
+            data.SEVCON.TPDO5_2Updated = 1;
             break;
         }
     }
@@ -253,6 +303,7 @@ void printData()
 {
     char buffer[128];
 
+    Serial.println();
     Serial.print("{");
     Serial.println("data: {");
 
@@ -282,7 +333,11 @@ void printData()
     Serial.println("}");
     Serial.println("],");
     Serial.println("SEVCON: {");
-    sprintf(buffer, "%cTPDO1_1%c: %d", '"', '"', data.SEVCON.TPDO1_1);
+    sprintf(buffer, "%cTPDO2_2%c: %d", '"', '"', data.SEVCON.TPDO2_2);
+    Serial.println(buffer);
+    sprintf(buffer, "%cTPDO3_1%c: %d", '"', '"', data.SEVCON.TPDO3_1);
+    Serial.println(buffer);
+    sprintf(buffer, "%cTPDO1_3%c: %d", '"', '"', data.SEVCON.TPDO1_3);
     Serial.println(buffer);
     Serial.println("},");
 
