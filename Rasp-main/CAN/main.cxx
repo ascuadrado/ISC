@@ -1,6 +1,8 @@
 /*
- * 3_recopilacion_datos.cxx
+ * main.cxx
  * Alberto Sánchez Cuadrado
+ *
+ * Create a buffer with the last messages and periodically update a JSON file with data
  *
  */
 
@@ -8,6 +10,8 @@
 #include <iostream>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
+#include <stdio.h>
 
 // CAN library (with mcp2515)
 #include "src/mcp_can_rpi.h"
@@ -15,21 +19,27 @@
 
 // CAN instances
 MCP_CAN CAN0(0, 1000000, CAN0IntPin, CAN0CS);
-MCP_CAN CAN0(0, 1000000, CAN1IntPin, CAN1CS);
+MCP_CAN CAN1(0, 1000000, CAN1IntPin, CAN1CS);
 
 // Timer help
-#define period0    1000
+useconds_t period0 = 999999;
 
 // Functions
-void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
-void checkData();
-void timer0();
-void detectInterrupt();
 void setup();
 void loop();
+void timer0(int sig_num);
+void newInterrupt0();
+void newInterrupt1();
+void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
+void checkData();
+void writeData();
 
 // Data structures
-struct Data data;
+struct Data   data;
+struct CANMsg MSGBuffer[20];
+
+// Buffer help
+int bufferCount = 0;
 
 int main()
 {
@@ -43,77 +53,95 @@ int main()
 
 void setup()
 {
-    printf("Hello World! Program 3_recopilacion_datos.cxx is running!\n\n");
+    printf("Program 4_buffer.cxx is running!\n\n");
+
 
     // Initialize GPIO pins and SPI bus of the Raspberry Pi
     wiringPiSetup();
-    CAN.setupInterruptGpio();
-    CAN.setupSpi();
+    CAN0.setupInterruptGpio();
+    CAN0.setupSpi();
+    CAN1.setupInterruptGpio();
+    CAN1.setupSpi();
     printf("GPIO Pins initialized & SPI started\n");
 
-    // Attach interrupt to read incoming messages and timer
-    signal(SIGALRM, period0);
+
+    // Attach interrupt to read incoming messages
+    wiringPiISR(CAN0IntPin, INT_EDGE_FALLING, newInterrupt0);
+    wiringPiISR(CAN1IntPin, INT_EDGE_FALLING, newInterrupt1);
+
+
+    // Create timer for periodic functions
+    signal(SIGALRM, timer0);
     ualarm(period0, period0);
 
-    wiringPiISR(IntPIN, INT_EDGE_FALLING, detectInterrupt());
 
+    // Init CAN and enter mode
     while (CAN0.begin(MCP_ANY, CAN0Speed, MCP_8MHZ))
     {
-        Serial.print("Failed starting CAN0");
+        printf("Failed starting CAN0\n");
         usleep(1000000);
+        break; // To remove later on
     }
 
     while (CAN1.begin(MCP_ANY, CAN1Speed, MCP_8MHZ))
     {
-        Serial.print("Failed starting CAN1");
+        printf("Failed starting CAN1\n");
         usleep(1000000);
+        break; // To remove later on
     }
 
     CAN0.setMode(MCP_NORMAL);
     CAN1.setMode(MCP_NORMAL);
 
     printf("CAN ready: CAN0 - %d\n", CAN0Speed);
-    printf("CAN ready: CAN0 - %d\n", CAN1Speed);
+    printf("CAN ready: CAN1 - %d\n", CAN1Speed);
 }
 
 
 void loop()
 {
-    if (!digitalRead(CAN0IntPin)) // New message on CAN 0
+    if (bufferCount)
     {
-        INT32U id;
-        INT8U  len = 0;
-        INT8U  buf[8];
-
-        CAN0.readMsgBuf(&id, &len, buf);
-        parseMessage(id, len, buf, 0);
+        printf("%d", bufferCount);
+        for (int i = 0; i < bufferCount; i++)
+        {
+            printf("New msg to read. Position: %d. ID: 0x%lx", i, MSGBuffer[i].id);
+            parseMessage(MSGBuffer[i].id, MSGBuffer[i].len, &MSGBuffer[i].buf, MSGBuffer[i].bus);
+        }
+        bufferCount = 0;
     }
-
-    if (!digitalRead(CAN1IntPin)) // New message on CAN 1
+    else
     {
-        INT32U id;
-        INT8U  len = 0;
-        INT8U  buf[8];
-
-        CAN0.readMsgBuf(&id, &len, buf);
-        parseMessage(id, len, buf, 1);
+        usleep(1000);
     }
-    usleep(100);
 }
 
 
-void timer0()
+void timer0(int sig_num)
 {
     // Do something
+    checkData();
+    writeData(data);
 }
 
 
-void detectInterrupt()
+void newInterrupt0()
 {
+    CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf);
+    MSGBuffer[bufferCount].bus = 0;
+    bufferCount++;
 }
 
 
-void parseMessage(INT32U id, INT8U len, INT8U *buf, int busN)
+void newInterrupt1()
+{
+    CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf);
+    MSGBuffer[bufferCount].bus = 1;
+    bufferCount++;
+}
+
+
+void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 {
     id = id & 0x1FFFFFFF;
 
@@ -223,8 +251,6 @@ void checkData()
         }
         if (!allUpdated)
         {
-            Serial.print("Some problem in BMS ");
-            Serial.println(i);
             allOK = 0;
         }
     }
@@ -240,7 +266,6 @@ void checkData()
     }
     if (!allUpdated)
     {
-        Serial.print("Some problem in Charger ");
         allOK = 0;
     }
 

@@ -94,10 +94,7 @@ struct CHARGERData
 
 struct Data
 {
-    int                timeStamp;
     int                allOK;
-    char               comment[128];
-
     struct BMSData     BMS[3];
     struct SEVCONData  SEVCON;
     struct CHARGERData CHARGER;

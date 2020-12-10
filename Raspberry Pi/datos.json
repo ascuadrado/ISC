@@ -1,22 +1,24 @@
 {
     "data": {
+        "timeStamp": 1234,
         "allOK": 1,
+        "comment": "Testing",
+
         "BMS": [{
-                "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                "temperatures": [0, 0]
-            },
-            {
-                "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                "temperatures": [0, 0]
-            },
-            {
-                "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                "temperatures": [0, 0]
-            }
-        ],
+            "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            "temperatures": [0, 0]
+        }, {
+            "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            "temperatures": [0, 0]
+        }, {
+            "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            "temperatures": [0, 0]
+        }],
+
         "SEVCON": {
             "TPDO1_1": 0
         },
+
         "CHARGER": {
             "Vtotal": 0,
             "Icharge": 0,

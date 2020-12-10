@@ -29,8 +29,8 @@ int startMillis = 0;
 int period      = 20;
 
 // Counters
-int newMessageCount = 0;
-int count           = 0;
+int bufferCount = 0;
+int count       = 0;
 
 struct CANMsg
 {
@@ -83,23 +83,23 @@ void loop()
 
 void tryToReadMessage()
 {
-    if (newMessageCount)
+    if (bufferCount)
     {
-        Serial.print(newMessageCount);
-        for (int i = 0; i < newMessageCount; i++)
+        Serial.print(bufferCount);
+        for (int i = 0; i < bufferCount; i++)
         {
             char message[128];
             sprintf(message, "New msg to read. Position: %d. ID: 0x%lx", i, MSGBuffer[i].id);
             Serial.println(message);
             delay(2);
         }
-        newMessageCount = 0;
+        bufferCount = 0;
     }
 }
 
 
 void CAN1Interrupt()
 {
-    CAN1.readMsgBuf(&MSGBuffer[newMessageCount].id, &MSGBuffer[newMessageCount].len, &MSGBuffer[newMessageCount].buf);
-    newMessageCount++;
+    CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf);
+    bufferCount++;
 }
