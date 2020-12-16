@@ -1,12 +1,19 @@
 import sqlite3
 import time
+import json
 
 # Create the connecection to the database
-conn = sqlite3.connect('../../DataBaseMoto.db')
+dbFile = '/home/pi/Desktop/Rasp-main/DataBase.db'
+jsonFile = '/home/pi/Desktop/Rasp-main/'
+
+dbFile = '/home/pi/Desktop/Rasp-main/DataBase.db'
+jsonFile = '/home/pi/Desktop/Rasp-main/'
+
+conn = sqlite3.connect(dbFile)
 c = conn.cursor()
 
 
-def collect_data():
+def collect_data(dbFile, jsonFile):
     """
     Function to collect data from the bms and store it in the appropiate dictionary
 
@@ -22,6 +29,9 @@ def collect_data():
 
     "Aqui va el codigo de alberto para recoger los datos que puede venir en forma de diccionario"
     #TODO: Función para recoger los datos de los bms y meterlos en diccionarios (Alberto jr.)
+
+    with open(jsonFile) as f:
+        data = json.load(f)
 
     bms1 = dict()
     bms2 = dict()
@@ -41,7 +51,7 @@ def collect_data():
 
 
 # Collecting data
-bms1, bms2, bms3, general = collect_data()
+bms1, bms2, bms3, general = collect_data(dbFile, jsonFile)
 
 c.execute("INSERT INTO bms1 (date, time, voltage1, voltage2, voltage3, voltage4, voltage5, voltage6, voltage7,"
           "voltage8, voltage9, voltage10, voltage11, voltage12, temperature1, "
