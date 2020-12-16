@@ -14,6 +14,9 @@
 // Setup parameters
 #define chargerID     0x1806E7F4
 
+// File saving
+char fileName[128] = "datos.json";
+
 /*
  * Data structures
  * ----------------------------
@@ -107,9 +110,10 @@ void writeData(struct Data data)
 
     FILE   *filePointer;
     time_t timestamp;
+
     time(&timestamp);
 
-    filePointer = fopen("datos.json", "w");
+    filePointer = fopen(fileName, "w");
 
     fprintf(filePointer, "{\n");
     fprintf(filePointer, "\"data\": {\n");
