@@ -116,8 +116,7 @@ void writeData(struct Data data)
     filePointer = fopen(fileName, "w");
 
     fprintf(filePointer, "{\n");
-    fprintf(filePointer, "\"data\": {\n");
-    fprintf(filePointer, "\"timeStamp\": %ld,\n", timestamp);
+    fprintf(filePointer, "\"timestamp\": %ld,\n", timestamp);
     fprintf(filePointer, "\"allOK\": %d,\n", data.allOK);
     fprintf(filePointer, "\"BMS\": [{\n");
     fprintf(filePointer, "\"cellVoltagemV\": [%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d],\n", data.BMS[0].cellVoltagemV[0], data.BMS[0].cellVoltagemV[1], data.BMS[0].cellVoltagemV[2], data.BMS[0].cellVoltagemV[3], data.BMS[0].cellVoltagemV[4], data.BMS[0].cellVoltagemV[5], data.BMS[0].cellVoltagemV[6], data.BMS[0].cellVoltagemV[7], data.BMS[0].cellVoltagemV[8], data.BMS[0].cellVoltagemV[9], data.BMS[0].cellVoltagemV[10], data.BMS[0].cellVoltagemV[11]);
@@ -137,7 +136,6 @@ void writeData(struct Data data)
     fprintf(filePointer, "\"Vtotal\": %d,\n", data.CHARGER.Vtotal);
     fprintf(filePointer, "\"Icharge\": %d,\n", data.CHARGER.Icharge);
     fprintf(filePointer, "\"flags\": [%d, %d, %d, %d, %d]\n", data.CHARGER.flags[0], data.CHARGER.flags[1], data.CHARGER.flags[2], data.CHARGER.flags[3], data.CHARGER.flags[4]);
-    fprintf(filePointer, "}\n");
     fprintf(filePointer, "}\n");
     fprintf(filePointer, "}\n");
     fprintf(filePointer, "\n");

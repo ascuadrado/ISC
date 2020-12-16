@@ -1,4 +1,33 @@
+
+CREATE TABLE IF NOT EXISTS 'general' (
+    'timestamp' REAL NOT NULL,
+    'date' DATE NOT NULL,
+    'time' TIME NOT NULL,
+    'allOK' INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS 'charger' (
+    'timestamp' REAL NOT NULL,
+    'date' DATE NOT NULL,
+    'time' TIME NOT NULL,
+    'voltage' REAL NOT NULL,
+    'current' REAL NOT NULL,
+    'flag0' INT NOT NULL,
+    'flag1' INT NOT NULL,
+    'flag2' INT NOT NULL,
+    'flag3' INT NOT NULL,
+    'flag4' INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS 'sevcon' (
+    'timestamp' REAL NOT NULL,
+    'date' DATE NOT NULL,
+    'time' TIME NOT NULL,
+    'TPDO1_1' INT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS 'bms1' (
+    'timestamp' REAL NOT NULL,
     'date' DATE NOT NULL,
     'time' TIME NOT NULL,
     'voltage1' REAL NOT NULL,
@@ -18,6 +47,7 @@ CREATE TABLE IF NOT EXISTS 'bms1' (
 );
 
 CREATE TABLE IF NOT EXISTS 'bms2' (
+    'timestamp' REAL NOT NULL,
     'date' DATE NOT NULL,
     'time' TIME NOT NULL,
     'voltage1' REAL NOT NULL,
@@ -37,6 +67,7 @@ CREATE TABLE IF NOT EXISTS 'bms2' (
 );
 
 CREATE TABLE IF NOT EXISTS 'bms3' (
+    'timestamp' REAL NOT NULL,
     'date' DATE NOT NULL,
     'time' TIME NOT NULL,
     'voltage1' REAL NOT NULL,
@@ -53,16 +84,4 @@ CREATE TABLE IF NOT EXISTS 'bms3' (
     'voltage12' REAL NOT NULL,
     'temperature1' REAL NOT NULL,
     'temperature2' REAL NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS 'general' (
-    'date' DATE NOT NULL,
-    'time' TIME NOT NULL,
-    'total_voltage' REAL,
-    'charger_voltage' REAL,
-    'charger_current' REAL,
-    'charger_flag1' INTEGER,
-    'charger_flag2' INTEGER,
-    'charger_flag3' INTEGER,
-    'charger_flag4' INTEGER
 );

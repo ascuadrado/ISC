@@ -1,0 +1,23 @@
+{
+    "timestamp": 1607627422,
+    "allOK": 0,
+    "BMS": [{
+        "cellVoltagemV": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        "temperatures": [0, 0]
+    }, {
+        "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "temperatures": [0, 0]
+    }, {
+        "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "temperatures": [0, 0]
+    }],
+    "SEVCON": {
+        "TPDO1_1": 0
+
+    },
+    "CHARGER": {
+        "Vtotal": 0,
+        "Icharge": 0,
+        "flags": [0, 0, 0, 0, 0]
+    }
+}
