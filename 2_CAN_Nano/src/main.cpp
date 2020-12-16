@@ -28,9 +28,8 @@ MCP_CAN CAN2(CAN2CS);
 int startMillis = 0;
 int period      = 20;
 
-// Counters
+// Buffer
 int bufferCount = 0;
-int count       = 0;
 
 struct CANMsg
 {
