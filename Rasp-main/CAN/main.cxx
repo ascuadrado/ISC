@@ -53,7 +53,7 @@ int main()
 
 void setup()
 {
-    printf("Program 4_buffer.cxx is running!\n\n");
+    printf("main.cxx running!\n\n");
 
 
     // Initialize GPIO pins and SPI bus of the Raspberry Pi
@@ -87,7 +87,7 @@ void setup()
     {
         printf("Failed starting CAN1\n");
         usleep(1000000);
-        break; // To remove later on
+        break; // To remove later on 
     }
 
     CAN0.setMode(MCP_NORMAL);
@@ -122,6 +122,7 @@ void timer0(int sig_num)
     // Do something
     checkData();
     writeData(data);
+    system("python3 /home/pi/Desktop/Rasp-main/SQL/DataCollection.py");
 }
 
 

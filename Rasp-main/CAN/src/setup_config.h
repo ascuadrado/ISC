@@ -15,7 +15,7 @@
 #define chargerID     0x1806E7F4
 
 // File saving
-char fileName[128] = "datos.json";
+char fileName[128] = "/home/pi/Desktop/Rasp-main/datos.json";
 
 /*
  * Data structures
