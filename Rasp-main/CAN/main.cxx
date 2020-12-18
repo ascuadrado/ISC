@@ -88,7 +88,7 @@ void setup()
     {
         printf("Failed starting CAN1\n");
         usleep(1000000);
-        break; // To remove later on 
+        break; // To remove later on
     }
 
     CAN0.setMode(MCP_NORMAL);
@@ -131,14 +131,16 @@ void timer0(int sig_num)
 
 void timer1(int sig_num)
 {
-    INT8U buf[] = {0,0};
-    CAN1.sendMsgBuf(0x12C+10, 1, 2, buf);
+    INT8U buf[] = { 0, 0 };
+
+    CAN1.sendMsgBuf(0x12C + 10, 1, 2, buf);
 }
 
 
 void newInterrupt0()
 {
-    while(CAN_MSGAVAIL == CAN0.checkReceive()){
+    while (CAN_MSGAVAIL == CAN0.checkReceive())
+    {
         CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
         MSGBuffer[bufferCount].bus = 0;
         bufferCount++;
@@ -148,7 +150,8 @@ void newInterrupt0()
 
 void newInterrupt1()
 {
-    while(CAN_MSGAVAIL == CAN1.checkReceive()){
+    while (CAN_MSGAVAIL == CAN1.checkReceive())
+    {
         CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
         MSGBuffer[bufferCount].bus = 1;
         bufferCount++;
@@ -159,9 +162,9 @@ void newInterrupt1()
 void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 {
     id = id & 0x1FFFFFFF;
-    
+
     printf("ID: %lu, len: %d, bus: %d", id, len, busN);
-    printf(" -> %d, %d, %d, %d, %d, %d, %d, %d\n", buf[0], buf[1], buf[2], buf [3], buf[4], buf[5], buf[6], buf[7]); 
+    printf(" -> %d, %d, %d, %d, %d, %d, %d, %d\n", buf[0], buf[1], buf[2], buf [3], buf[4], buf[5], buf[6], buf[7]);
 
     if (busN == 1)
     {
@@ -190,7 +193,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
             int n = (id - 300) / 10;
             // Message number (0-3)
             int m = (id - 300 - n * 10 - 1);
-            
+
             //printf(" | n: %d, m: %d | ", n, m);
 
             // Voltage frame
@@ -215,7 +218,6 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
                 }
             }
             printf("\n\n\n");
-
         }
     }
 
