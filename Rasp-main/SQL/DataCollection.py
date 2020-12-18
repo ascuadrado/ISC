@@ -7,11 +7,11 @@ import json
 t = time.time() # Measure how long the script takes to run
 
 # Create the connecection to the database
-dbFile = '/home/pi/Desktop/Rasp-main/DataBase.db'
-jsonFile = '/home/pi/Desktop/Rasp-main/'
+dbFile = '/home/pi/Desktop/Rasp-main/Database.db'
+jsonFile = '/home/pi/Desktop/Rasp-main/datos.json'
 
-dbFile = 'Rasp-main/SQL/DataBase.db'
-jsonFile = 'Rasp-main/SQL/datos.json'
+#dbFile = 'Rasp-main/SQL/DataBase.db'
+#jsonFile = 'Rasp-main/SQL/datos.json'
 
 conn = sqlite3.connect(dbFile)
 c = conn.cursor()

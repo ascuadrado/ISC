@@ -7,7 +7,7 @@
 #define CAN0IntPin    25
 #define CAN0CS        8
 
-#define CAN1Speed     CAN_500KBPS
+#define CAN1Speed     CAN_250KBPS
 #define CAN1IntPin    24
 #define CAN1CS        7
 
@@ -15,7 +15,7 @@
 #define chargerID     0x1806E7F4
 
 // File saving
-char fileName[128] = "datos.json";
+char fileName[128] = "/home/pi/Desktop/Rasp-main/datos.json";
 
 /*
  * Data structures
@@ -26,7 +26,7 @@ struct CANMsg
 {
     INT32U id;
     INT8U  len;
-    INT8U  buf;
+    INT8U  buf[8];
     int    bus;
 };
 

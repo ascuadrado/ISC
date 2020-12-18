@@ -1,5 +1,5 @@
 JSONObject json;
-String fileName = "datos.json";
+String fileName = "/home/pi/Desktop/Rasp-main/datos.json";
 
 void printTime(){
   print(hour());
