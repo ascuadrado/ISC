@@ -28,6 +28,7 @@ useconds_t period0 = 999999;
 void setup();
 void loop();
 void timer0(int sig_num);
+void timer1(int sig_num);
 void newInterrupt0();
 void newInterrupt1();
 void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
@@ -87,7 +88,7 @@ void setup()
     {
         printf("Failed starting CAN1\n");
         usleep(1000000);
-        break; // To remove later on 
+        break; // To remove later on
     }
 
     CAN0.setMode(MCP_NORMAL);
@@ -102,43 +103,59 @@ void loop()
 {
     if (bufferCount)
     {
-        printf("%d", bufferCount);
+        //printf("%d", bufferCount);
         for (int i = 0; i < bufferCount; i++)
         {
-            printf("New msg to read. Position: %d. ID: 0x%lx", i, MSGBuffer[i].id);
-            parseMessage(MSGBuffer[i].id, MSGBuffer[i].len, &MSGBuffer[i].buf, MSGBuffer[i].bus);
+            printf("New msg to read. Position: %d. ID: 0x%lx\n", i, MSGBuffer[i].id & 0x1FFFFFFF);
+            parseMessage(MSGBuffer[i].id, MSGBuffer[i].len, MSGBuffer[i].buf, MSGBuffer[i].bus);
         }
         bufferCount = 0;
     }
     else
     {
-        usleep(1000);
+        usleep(10);
     }
 }
 
 
 void timer0(int sig_num)
 {
+    printf("BMS2_3: %d", data.BMS[1].cellVoltagemV[3]);
     // Do something
-    checkData();
+    //checkData();
     writeData(data);
-    system("python3 /home/pi/Desktop/Rasp-main/SQL/DataCollection.py");
+    //system("python3 /home/pi/Desktop/Rasp-main/SQL/DataCollection.py");
+    timer1(0);
+}
+
+
+void timer1(int sig_num)
+{
+    INT8U buf[] = { 0, 0 };
+
+    CAN1.sendMsgBuf(0x12C + 10, 1, 2, buf);
 }
 
 
 void newInterrupt0()
 {
-    CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf);
-    MSGBuffer[bufferCount].bus = 0;
-    bufferCount++;
+    while (CAN_MSGAVAIL == CAN0.checkReceive())
+    {
+        CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
+        MSGBuffer[bufferCount].bus = 0;
+        bufferCount++;
+    }
 }
 
 
 void newInterrupt1()
 {
-    CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf);
-    MSGBuffer[bufferCount].bus = 1;
-    bufferCount++;
+    while (CAN_MSGAVAIL == CAN1.checkReceive())
+    {
+        CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
+        MSGBuffer[bufferCount].bus = 1;
+        bufferCount++;
+    }
 }
 
 
@@ -146,7 +163,10 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 {
     id = id & 0x1FFFFFFF;
 
-    if (busN == 0)
+    printf("ID: %lu, len: %d, bus: %d", id, len, busN);
+    printf(" -> %d, %d, %d, %d, %d, %d, %d, %d\n", buf[0], buf[1], buf[2], buf [3], buf[4], buf[5], buf[6], buf[7]);
+
+    if (busN == 1)
     {
         // Charger
         if ((id == chargerID))
@@ -174,6 +194,8 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
             // Message number (0-3)
             int m = (id - 300 - n * 10 - 1);
 
+            //printf(" | n: %d, m: %d | ", n, m);
+
             // Voltage frame
             if (m < 3)
             {
@@ -182,6 +204,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
                     // i = number of cell within message
                     data.BMS[n].cellVoltagemV[m * 4 + i]        = (buf[2 * i] << 8) + buf[2 * i + 1];
                     data.BMS[n].cellVoltagemVUpdated[m * 4 + i] = 1;
+                    printf(" i:%d, buf0:%d, buf1:%d", i, buf[2 * i], buf[2 * i + 1]);
                 }
             }
 
@@ -194,6 +217,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
                     data.BMS[n].temperaturesUpdated[i] = 1;
                 }
             }
+            printf("\n\n\n");
         }
     }
 

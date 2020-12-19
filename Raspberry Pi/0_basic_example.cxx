@@ -28,25 +28,25 @@
 #define DEBUG_MODE    1
 
 // CAN setup
-#define IntPIN        25
-#define CSPIN         8
+#define IntPIN        24
+#define CSPIN         7
 #define SPIBus        0
-#define CANSpeed      CAN_500KBPS
+#define CANSpeed      CAN_250KBPS
 #define MCPClock      MCP_8MHZ
 #define MCPMode       MCP_NORMAL
 
 // Message to be sent
 #define N             2       // Max is 8
 #define EXT           1       // 1=extended, 0=normal
-#define DELAY         1000000 // Delay in microseconds
+#define DELAY         999999 // Delay in microseconds
 uint32_t id         = 0x12C;
-uint8_t  data[N]    = { 3, 1 };
+uint8_t  data[N]    = { 0, 0 };
 bool     newMessage = false;
 
 // Auxiliary function
 void detectInterrupt();
 void printCANMsg();
-void sendCANMsg();
+void sendCANMsg(int n);
 
 // New MCP_CAN instance
 // MCP_CAN(int spi_channel, int spi_baudrate, INT8U gpio_can_interrupt);
@@ -60,6 +60,9 @@ int main()
      */
 
     printf("Hello World! Program 0_basic_example.cxx is running!\n\n");
+    
+    printf("%d\n\n", (14<<8) + (108));
+    usleep(2000000);
 
     // Initialize GPIO pins and SPI bus of the Raspberry Pi
     wiringPiSetup();
@@ -71,7 +74,7 @@ int main()
     signal(SIGALRM, sendCANMsg);
     ualarm(DELAY, DELAY);
 
-    wiringPiISR(IntPIN, INT_EDGE_FALLING, detectInterrupt());
+    wiringPiISR(IntPIN, INT_EDGE_FALLING, detectInterrupt);
 
     /* Start CAN bus
      * INT8U begin(INT8U idmodeset, INT8U speedset, INT8U clockset);
@@ -134,9 +137,9 @@ void printCANMsg()
 }
 
 
-void sendCANMsg()
+void sendCANMsg(int n)
 {
-    printf("\n\nMessage sent: %d\n", CAN.sendMsgBuf(id, EXT, N, data));
+    printf("\n\nMessage sent: %d\n", CAN.sendMsgBuf(id+10, EXT, N, data));
 }
 
 

@@ -1,12 +1,12 @@
 {
-"timestamp": 1607632909,
+"timestamp": 1608161623,
 "allOK": 0,
 "BMS": [{
 "cellVoltagemV": [0,0,0,0,0,0,0,0,0,0,0,0],
 "temperatures": [0,0]
 },{
-"cellVoltagemV": [0,0,0,0,0,0,0,0,0,0,0,0],
-"temperatures": [0,0]
+"cellVoltagemV": [3462,3464,3467,3458,3692,3678,3555,3556,3552,3554,3550,0],
+"temperatures": [-40,-40]
 },{
 "cellVoltagemV": [0,0,0,0,0,0,0,0,0,0,0,0],
 "temperatures": [0,0]
