@@ -1,10 +1,7 @@
-float maxVoltage = 135.0;
-float minVoltage = 80.0;
-
 class Data {
     float totalVoltage = 0;
     float current = 0;
-    float speed = 0;
+    float speed = 119;
     
     void update(){
       json = loadJSONObject(fileName);
@@ -30,29 +27,31 @@ class Data {
         totalV += BMS3_v[i];
       }
       
-      totalVoltage = totalV / 1000;
+      totalVoltage = 1.0 * totalV / 1000;
     }
     
     void display(){
-      int margen = 15;
-      float batW = 1.0 * 20 / 100; // Width of battery indicator in %
+      int margen = 20;
+      float batW = 50;
       float batPercent = (totalVoltage - minVoltage)/(maxVoltage - minVoltage);
-      float speedW = 1.0 * 25 / 100;
+      float speedW = 1.0 * 25 / 100; // %
       
       // Battery
+      fill(0,255,71);
+      noStroke();
+      rect(margen, height - margen, batW, -(height - 2*margen)*batPercent, 0, 0, batW/2, batW/2);
+      
       stroke(255);
       strokeWeight(4);
       noFill();
-      rect(margen-2, margen-2, width*batW+2, height - 2*margen+2);
-      fill(32, 195, 26);
-      noStroke();
-      rect(margen, height - margen, width*batW, -(height - 2*margen)*batPercent);
+      rect(margen, margen, batW, height - 2*margen, batW/2);
+
       
       // Text
       fill(255);
       textSize(16);
       textAlign(CENTER);
-      text(String.format("%.2f",batPercent*100)+"%", margen+width*batW/2, margen+20);
+      text(String.format("%.2f",batPercent*100)+"%", margen+batW/2, margen+20);
       
       // Speedometer
       noFill();
