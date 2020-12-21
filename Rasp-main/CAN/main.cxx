@@ -18,8 +18,8 @@
 #include "src/setup_config.h"
 
 // CAN instances
-MCP_CAN CAN0(0, 1000000, CAN0IntPin, CAN0CS);
-MCP_CAN CAN1(0, 1000000, CAN1IntPin, CAN1CS);
+MCP_CAN CAN0(0, 10000000, CAN0IntPin, CAN0CS);
+MCP_CAN CAN1(0, 10000000, CAN1IntPin, CAN1CS);
 
 // Timer help
 useconds_t period0 = 999999;
@@ -56,7 +56,6 @@ void setup()
 {
     printf("main.cxx running!\n\n");
 
-
     // Initialize GPIO pins and SPI bus of the Raspberry Pi
     wiringPiSetup();
     CAN0.setupInterruptGpio();
@@ -69,11 +68,6 @@ void setup()
     // Attach interrupt to read incoming messages
     wiringPiISR(CAN0IntPin, INT_EDGE_FALLING, newInterrupt0);
     wiringPiISR(CAN1IntPin, INT_EDGE_FALLING, newInterrupt1);
-
-
-    // Create timer for periodic functions
-    signal(SIGALRM, timer0);
-    ualarm(period0, period0);
 
 
     // Init CAN and enter mode
@@ -96,6 +90,11 @@ void setup()
 
     printf("CAN ready: CAN0 - %d\n", CAN0Speed);
     printf("CAN ready: CAN1 - %d\n", CAN1Speed);
+    
+    
+    // Create timer for periodic functions
+    signal(SIGALRM, timer0);
+    ualarm(period0, period0);
 }
 
 
@@ -103,44 +102,43 @@ void loop()
 {
     if (bufferCount)
     {
-        //printf("%d", bufferCount);
         for (int i = 0; i < bufferCount; i++)
         {
-            printf("New msg to read. Position: %d. ID: 0x%lx\n", i, MSGBuffer[i].id & 0x1FFFFFFF);
             parseMessage(MSGBuffer[i].id, MSGBuffer[i].len, MSGBuffer[i].buf, MSGBuffer[i].bus);
         }
         bufferCount = 0;
     }
     else
     {
-        usleep(10);
+        usleep(1000);
     }
 }
 
 
 void timer0(int sig_num)
 {
-    printf("BMS2_3: %d", data.BMS[1].cellVoltagemV[3]);
+
     // Do something
     //checkData();
     writeData(data);
-    //system("python3 /home/pi/Desktop/Rasp-main/SQL/DataCollection.py");
+    //printf("PIN: %d\n", digitalRead(CAN1IntPin));
+    system("python3 /home/pi/Desktop/Rasp-main/SQL/DataCollection.py");
     timer1(0);
 }
 
 
 void timer1(int sig_num)
 {
-    INT8U buf[] = { 0, 0 };
+    INT8U buf[] = { 3, 1 };
 
-    CAN1.sendMsgBuf(0x12C + 10, 1, 2, buf);
+    CAN1.sendMsgBuf(0x200 + 10, 1, 2, buf);
 }
 
 
 void newInterrupt0()
 {
-    while (CAN_MSGAVAIL == CAN0.checkReceive())
-    {
+    //printf("0");
+    while(!digitalRead(CAN0IntPin)){
         CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
         MSGBuffer[bufferCount].bus = 0;
         bufferCount++;
@@ -150,8 +148,7 @@ void newInterrupt0()
 
 void newInterrupt1()
 {
-    while (CAN_MSGAVAIL == CAN1.checkReceive())
-    {
+    while(!digitalRead(CAN1IntPin)){
         CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
         MSGBuffer[bufferCount].bus = 1;
         bufferCount++;
@@ -162,11 +159,11 @@ void newInterrupt1()
 void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 {
     id = id & 0x1FFFFFFF;
+    printf("0x%lx\n", id);
+    //printf("ID: 0x%lx, len: %d, bus: %d\n", id, len, busN);
+    //printf(" -> %x, %x, %x, %x, %x, %x, %x, %x\n\n", buf[0], buf[1], buf[2], buf [3], buf[4], buf[5], buf[6], buf[7]);
 
-    printf("ID: %lu, len: %d, bus: %d", id, len, busN);
-    printf(" -> %d, %d, %d, %d, %d, %d, %d, %d\n", buf[0], buf[1], buf[2], buf [3], buf[4], buf[5], buf[6], buf[7]);
-
-    if (busN == 1)
+    if (true || busN == 0)
     {
         // Charger
         if ((id == chargerID))
@@ -204,7 +201,6 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
                     // i = number of cell within message
                     data.BMS[n].cellVoltagemV[m * 4 + i]        = (buf[2 * i] << 8) + buf[2 * i + 1];
                     data.BMS[n].cellVoltagemVUpdated[m * 4 + i] = 1;
-                    printf(" i:%d, buf0:%d, buf1:%d", i, buf[2 * i], buf[2 * i + 1]);
                 }
             }
 
@@ -217,7 +213,6 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
                     data.BMS[n].temperaturesUpdated[i] = 1;
                 }
             }
-            printf("\n\n\n");
         }
     }
 
@@ -228,9 +223,10 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
     {
         switch (id)
         {
-        case 0x274:
+        case 0x102:
             // TPDO1
-            data.SEVCON.TPDO1_1 = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO1_1 = (buf[7] << 8) + buf[6];
+            printf("    TPDO %d\n", data.SEVCON.TPDO1_1);
             break;
 
         case 0x195:

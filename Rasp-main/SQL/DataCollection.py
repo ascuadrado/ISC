@@ -124,4 +124,4 @@ c.execute("INSERT INTO bms3 (timestamp, date, time, voltage1, voltage2, "
 
 conn.commit()
 
-print("Time in secs: " + str(time.time()-t))
+#print("Time in secs: " + str(time.time()-t))

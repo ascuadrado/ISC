@@ -2,6 +2,7 @@ class Data {
     float totalVoltage = 0;
     float current = 0;
     float speed = 119;
+    float throttle = 0;
     
     void update(){
       json = loadJSONObject(fileName);
@@ -28,7 +29,12 @@ class Data {
       }
       
       totalVoltage = 1.0 * totalV / 1000;
-    }
+
+      JSONObject SEVCON = json.getJSONObject("SEVCON");
+      int tpdo1 = SEVCON.getInt("TPDO1_1");
+      throttle = 1.0*tpdo1/32768;
+
+}
     
     void display(){
       int margen = 20;

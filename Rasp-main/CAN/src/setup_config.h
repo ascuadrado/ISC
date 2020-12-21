@@ -7,7 +7,7 @@
 #define CAN0IntPin    25
 #define CAN0CS        8
 
-#define CAN1Speed     CAN_250KBPS
+#define CAN1Speed     CAN_500KBPS
 #define CAN1IntPin    24
 #define CAN1CS        7
 
@@ -106,7 +106,7 @@ struct Data
 
 void writeData(struct Data data)
 {
-    printf("Writing to file!\n");
+    //printf("Writing to file!\n");
 
     FILE   *filePointer;
     time_t timestamp;
@@ -129,7 +129,7 @@ void writeData(struct Data data)
     fprintf(filePointer, "\"temperatures\": [%d,%d]\n", data.BMS[2].temperatures[0], data.BMS[2].temperatures[1]);
     fprintf(filePointer, "}],\n");
     fprintf(filePointer, "\"SEVCON\": {\n");
-    fprintf(filePointer, "\"TPDO1_1\": %d\n", data.SEVCON.TPDO1_1);
+    fprintf(filePointer, "\"TPDO1_1\": %d\n", data.SEVCON.TPDO1_1+1);
     fprintf(filePointer, "\n");
     fprintf(filePointer, "},\n");
     fprintf(filePointer, "\"CHARGER\": {\n");

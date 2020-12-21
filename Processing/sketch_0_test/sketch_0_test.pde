@@ -1,5 +1,5 @@
 JSONObject json;
-String fileName = "datos-ejm.json";
+String fileName = "/home/pi/Desktop/Rasp-main/datos.json";
 
 float maxVoltage = 135.0;
 float minVoltage = 80.0;
@@ -39,7 +39,7 @@ void draw(){
   display.drawBattery((data.totalVoltage-minVoltage)/(maxVoltage-minVoltage));
   display.drawAlert(true);
   display.drawSpeed((int)data.speed);
-  display.drawPower(1-1.0*mouseY/480);
+  display.drawPower(data.throttle);
   display.drawBatteryV(data.totalVoltage);
   
   //rect(0,0, totalV, totalV);
