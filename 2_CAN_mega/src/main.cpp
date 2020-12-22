@@ -145,12 +145,18 @@ void CAN0Interrupt()
 
 void CAN1Interrupt()
 {
+    int a = micros();
+
     if (!CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf))
     {
         MSGBuffer[bufferCount].bus = 1;
         bufferCount++;
         //Serial.println("Int 1");
     }
+    int b = micros();
+    Serial.print(a);
+    Serial.print(" - ");
+    Serial.println(b);
 }
 
 

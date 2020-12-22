@@ -878,7 +878,7 @@ MCP_CAN::MCP_CAN(int spi_channel, int spi_baudrate, INT8U gpio_can_interrupt, in
     this->cs_pin             = cs_pin;
 
     delay_spi_can.tv_sec  = 0;
-    delay_spi_can.tv_nsec = 0; // wait 5 microseconds between 2 spi transfers
+    delay_spi_can.tv_nsec = 5000L; // wait 5 microseconds between 2 spi transfers
 }
 
 

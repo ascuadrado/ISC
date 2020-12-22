@@ -23,9 +23,9 @@ void setup() {
   digital = createFont("Digital.ttf", 150);
   roboto = createFont("Roboto-Regular.ttf", 24);
 
-  size(800,480);
-  //noCursor();
-  //fullScreen();
+  //size(800,480);
+  noCursor();
+  fullScreen();
   
   println("Setup Done");
 }

@@ -90,8 +90,8 @@ void setup()
 
     printf("CAN ready: CAN0 - %d\n", CAN0Speed);
     printf("CAN ready: CAN1 - %d\n", CAN1Speed);
-    
-    
+
+
     // Create timer for periodic functions
     signal(SIGALRM, timer0);
     ualarm(period0, period0);
@@ -117,7 +117,6 @@ void loop()
 
 void timer0(int sig_num)
 {
-
     // Do something
     //checkData();
     writeData(data);
@@ -138,7 +137,8 @@ void timer1(int sig_num)
 void newInterrupt0()
 {
     //printf("0");
-    while(!digitalRead(CAN0IntPin)){
+    while (!digitalRead(CAN0IntPin))
+    {
         CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
         MSGBuffer[bufferCount].bus = 0;
         bufferCount++;
@@ -148,22 +148,28 @@ void newInterrupt0()
 
 void newInterrupt1()
 {
-    while(!digitalRead(CAN1IntPin)){
+    long int a = gettime_now.tv_nsec;
+
+    while (!digitalRead(CAN1IntPin))
+    {
         CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, MSGBuffer[bufferCount].buf);
         MSGBuffer[bufferCount].bus = 1;
         bufferCount++;
     }
+
+    long int b = gettime_now.tv_nsec;
+    printf("%d - %d\n", a, b);
 }
 
 
 void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 {
     id = id & 0x1FFFFFFF;
-    printf("0x%lx\n", id);
+    printf("MSG: 0x%lx\n", id);
     //printf("ID: 0x%lx, len: %d, bus: %d\n", id, len, busN);
     //printf(" -> %x, %x, %x, %x, %x, %x, %x, %x\n\n", buf[0], buf[1], buf[2], buf [3], buf[4], buf[5], buf[6], buf[7]);
 
-    if (true || busN == 0)
+    if (true) // Bus 0
     {
         // Charger
         if ((id == chargerID))
@@ -219,7 +225,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 
 
     // SEVCON controller
-    if (busN == 1)
+    if (busN == 1) // Bus 1
     {
         switch (id)
         {
