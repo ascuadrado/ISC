@@ -11,9 +11,11 @@ MCP_CAN CAN1(CAN1CS);
 
 // Timer help
 int startMillis0    = 0;
-int startMillis1    = 5000;
+int startMillis1    = 0;
+int startMillis2    = 0;
 int period0         = 1000;
 int period1         = 10000;
+int period2         = 1000;
 int BMSQueryCounter = 0;
 
 // Functions
@@ -23,6 +25,7 @@ void CAN0Interrupt();
 void CAN1Interrupt();
 void timer0();
 void timer1();
+void timer2();
 
 // Data structures
 struct Data data;
@@ -73,6 +76,7 @@ void loop()
     if (currentMillis - startMillis0 >= period0)   // Timer0
     {
         timer0();
+        startMillis0 = currentMillis;
     }
 
     if (currentMillis - startMillis1 >= period1)   // Timer1
@@ -82,11 +86,18 @@ void loop()
         startMillis1 = currentMillis;
     }
 
+    if (currentMillis - startMillis2 >= period2)   // Timer2
+    {
+        //checkData();
+        timer2();
+        startMillis2 = currentMillis;
+    }
+
     if (bufferCount)
     {
         for (int i = 0; i < bufferCount; i++)
         {
-            parseMessage(MSGBuffer[i].id, MSGBuffer[i].len, &MSGBuffer[i].buf, MSGBuffer[i].bus);
+            parseMessage(MSGBuffer[i].id, MSGBuffer[i].len, &MSGBuffer[i].buf[0], MSGBuffer[i].bus);
         }
         bufferCount = 0;
     }
@@ -95,8 +106,6 @@ void loop()
 
 void timer0()
 {
-    // Do something
-
     INT32U id       = 0x12C;
     INT8U  ext      = 1;
     INT8U  len      = 2;
@@ -116,25 +125,45 @@ void timer0()
         CAN0.sendMsgBuf(id + 20, ext, len, buf);
     }
 
-    // Test msg for BUS 1
-    //CAN1.sendMsgBuf(id, ext, len, buf);
     BMSQueryCounter++;
     BMSQueryCounter = BMSQueryCounter % 3;
+
+    // Debugging
+    CAN1.sendMsgBuf(0x100, 1, 2, buf);
+    CAN1.sendMsgBuf(0x101, 1, 2, buf);
+    CAN1.sendMsgBuf(0x102, 1, 2, buf);
+    CAN1.sendMsgBuf(0x103, 1, 2, buf);
+    CAN1.sendMsgBuf(0x104, 1, 2, buf);
+    CAN1.sendMsgBuf(0x105, 1, 2, buf);
+    CAN1.sendMsgBuf(0x106, 1, 2, buf);
+    CAN1.sendMsgBuf(0x107, 1, 2, buf);
 }
 
 
 void timer1()
 {
-    // Do something
     Serial.print("Check data: ");
     Serial.println(checkData());
     writeData(data);
 }
 
 
+void timer2()
+{
+    INT32U  id     = chargerID;
+    uint8_t v      = (uint8_t)(maxChargeVoltage * 10);
+    uint8_t i      = (uint8_t)(maxChargeCurrent * 10);
+    uint8_t charge = 1;
+
+    uint8_t messageCharger[5] = { (uint8_t)(v >> 8) & 0xFF, (uint8_t)(v) & 0xFF, (i >> 8) & 0xFF, i & 0xFF, (uint8_t)(1 - charge) };
+
+    CAN0.sendMsgBuf(id, 1, 5, messageCharger);
+}
+
+
 void CAN0Interrupt()
 {
-    if (!CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf))
+    if (!CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf[0]))
     {
         MSGBuffer[bufferCount].bus = 0;
         bufferCount++;
@@ -147,13 +176,14 @@ void CAN1Interrupt()
 {
     int a = micros();
 
-    if (!CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf))
+    if (!CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf[0]))
     {
         MSGBuffer[bufferCount].bus = 1;
         bufferCount++;
         //Serial.println("Int 1");
     }
     int b = micros();
+
     Serial.print(a);
     Serial.print(" - ");
     Serial.println(b);

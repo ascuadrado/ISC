@@ -1,23 +1,26 @@
 #include "mcp_can_dfs.h"
 
 // CAN config
-#define CAN0Speed         CAN_250KBPS
-#define CAN0IntPin        2
-#define CAN0CS            53
+#define CAN0Speed           CAN_250KBPS
+#define CAN0IntPin          2
+#define CAN0CS              53
 
-#define CAN1Speed         CAN_250KBPS
-#define CAN1IntPin        3
-#define CAN1CS            48
+#define CAN1Speed           CAN_500KBPS
+#define CAN1IntPin          3
+#define CAN1CS              48
 
 // Setup parameters
-#define chargerID         0x1806E7F4
-#define shuntVoltagemV    0
+#define chargerID           0x1806E7F4
+#define shuntVoltagemV      0
+#define maxChargeCurrent    1   // 1 amp
+#define maxChargeVoltage    120 // 120 volts
+#define chargeIfPossible    0   // 0 = don't charge
 
 struct CANMsg
 {
     INT32U id;
     INT8U  len;
-    INT8U  buf;
+    INT8U  buf[8];
     int    bus;
 };
 
@@ -151,5 +154,40 @@ void writeData(struct Data data)
     sprintf(buffer, "}\n");
     Serial.print(buffer);
     sprintf(buffer, "\n");
+    Serial.print(buffer);
+
+// Summary
+    int               max  = 0;
+    int               min  = 5000;
+    long unsigned int sum  = 0;
+    int               temp = data.BMS[1].temperatures[0];
+
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 12; j++)
+        {
+            int v = data.BMS[i].cellVoltagemV[j];
+            if (((i == 1) && (j >= 8)) || ((i == 2) && (j >= 10)))
+            {
+                continue;
+            }
+            sum += v;
+            if (v < min)
+            {
+                min = v;
+            }
+            if (v > max)
+            {
+                max = v;
+            }
+        }
+    }
+
+    if ((min < 3200) || (max > 4000) || (temp > 35))
+    {
+        Serial.println("ALERT, something is wrong!!!");
+        Serial.println("-----------------------------");
+    }
+    sprintf(buffer, "Max: %d, Min: %d, Total: %lu, temp: %d \n", max, min, sum, temp);
     Serial.print(buffer);
 }
