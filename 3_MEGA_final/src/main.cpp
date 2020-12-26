@@ -1,9 +1,9 @@
 // Libraries
-#include <Arduino.h>
-#include "mcp_can.h"
+#include <Arduino.h> # For platformio development
+#include "mcp_can.h" # mcp2515 library
 #include <SPI.h>
 
-#include "setup_config.h"
+#include "setup_config.h" # Contains all CAN configuration(pins, ids, etc)
 
 // CAN instances
 MCP_CAN CAN0(CAN0CS);
@@ -19,6 +19,7 @@ int period2         = 1000;
 int BMSQueryCounter = 0;
 
 // Functions
+void dataToDefault();
 void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
 int checkData();
 void CAN0Interrupt();
@@ -31,8 +32,10 @@ void timer2();
 struct Data data;
 
 // CAN MSG Buffer
-int           bufferCount = 0;
-struct CANMsg MSGBuffer[20];
+#define N    20
+int           tailCounter = 0;
+int           headCounter = 0;
+struct CANMsg MSGBuffer[N];
 
 /*
  * Main program
@@ -93,20 +96,19 @@ void loop()
         startMillis2 = currentMillis;
     }
 
-    if (bufferCount)
+    if (headCounter != tailCounter) // Process new msg in queue
     {
-        for (int i = 0; i < bufferCount; i++)
-        {
-            parseMessage(MSGBuffer[i].id, MSGBuffer[i].len, &MSGBuffer[i].buf[0], MSGBuffer[i].bus);
-        }
-        bufferCount = 0;
+        parseMessage(MSGBuffer[tailCounter].id, MSGBuffer[tailCounter].len,
+                     &MSGBuffer[tailCounter].buf[0], MSGBuffer[tailCounter].bus);
+        tailCounter++;
+        tailCounter %= N;
     }
 }
 
 
-void timer0()
+void timer0() // BMS and charger queries
 {
-    INT32U id       = 0x12C;
+    INT32U id       = BMS0ID;
     INT8U  ext      = 1;
     INT8U  len      = 2;
     INT8U  buf[len] = { (shuntVoltagemV >> 8) & 0xFF, shuntVoltagemV & 0xFF };
@@ -128,19 +130,22 @@ void timer0()
     BMSQueryCounter++;
     BMSQueryCounter = BMSQueryCounter % 3;
 
-    // Debugging
-    CAN1.sendMsgBuf(0x100, 1, 2, buf);
-    CAN1.sendMsgBuf(0x101, 1, 2, buf);
-    CAN1.sendMsgBuf(0x102, 1, 2, buf);
-    CAN1.sendMsgBuf(0x103, 1, 2, buf);
-    CAN1.sendMsgBuf(0x104, 1, 2, buf);
-    CAN1.sendMsgBuf(0x105, 1, 2, buf);
-    CAN1.sendMsgBuf(0x106, 1, 2, buf);
-    CAN1.sendMsgBuf(0x107, 1, 2, buf);
+    id = chargerID;
+    int v      = (uint8_t)(maxChargeVoltage * 10);
+    int i      = (uint8_t)(maxChargeCurrent * 10);
+    int charge = chargeIfPossible;
+
+    uint8_t messageCharger[5] = { (v >> 8) & 0xFF,
+                                  v & 0xFF,
+                                  (i >> 8) & 0xFF,
+                                  i & 0xFF,
+                                  (1 - charge) };
+
+    CAN0.sendMsgBuf(id, 1, 5, messageCharger);
 }
 
 
-void timer1()
+void timer1() // Check data and output to serial
 {
     Serial.print("Check data: ");
     Serial.println(checkData());
@@ -148,40 +153,34 @@ void timer1()
 }
 
 
-void timer2()
+void timer2() // Free to use timer
 {
-    INT32U  id     = chargerID;
-    uint8_t v      = (uint8_t)(maxChargeVoltage * 10);
-    uint8_t i      = (uint8_t)(maxChargeCurrent * 10);
-    uint8_t charge = 1;
-
-    uint8_t messageCharger[5] = { (uint8_t)(v >> 8) & 0xFF, (uint8_t)(v) & 0xFF, (i >> 8) & 0xFF, i & 0xFF, (uint8_t)(1 - charge) };
-
-    CAN0.sendMsgBuf(id, 1, 5, messageCharger);
+    // Timer 2
 }
 
 
 void CAN0Interrupt()
 {
-    if (!CAN0.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf[0]))
+    if (!CAN0.readMsgBuf(&MSGBuffer[headCounter].id, &MSGBuffer[headCounter].len, &MSGBuffer[headCounter].buf[0]))
     {
-        MSGBuffer[bufferCount].bus = 0;
-        bufferCount++;
-        //Serial.println("Int 0");
+        MSGBuffer[headCounter].bus = 0;
+        headCounter++;
+        headCounter %= N;
     }
 }
 
 
 void CAN1Interrupt()
 {
-    int a = micros();
+    int a = micros(); // Count time of interrupt
 
-    if (!CAN1.readMsgBuf(&MSGBuffer[bufferCount].id, &MSGBuffer[bufferCount].len, &MSGBuffer[bufferCount].buf[0]))
+    if (!CAN1.readMsgBuf(&MSGBuffer[headCounter].id, &MSGBuffer[headCounter].len, &MSGBuffer[headCounter].buf[0]))
     {
-        MSGBuffer[bufferCount].bus = 1;
-        bufferCount++;
-        //Serial.println("Int 1");
+        MSGBuffer[headCounter].bus = 1;
+        headCounter++;
+        headCounter %= N;
     }
+
     int b = micros();
 
     Serial.print(a);
@@ -205,18 +204,16 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
     }
     Serial.println("\n\n");
 
-
+    // BMS and charger BUS
     if (busN == 0)
     {
         // Charger
         if ((id == chargerID))
         {
             // Voltage measured by charger
-            data.CHARGER.Vtotal        = ((buf[0] << 8) + buf[1]) * 100;
-            data.CHARGER.VtotalUpdated = 1;
+            data.CHARGER.Vtotal = ((buf[0] << 8) + buf[1]) * 100;
             // Instant charging current
-            data.CHARGER.Icharge        = ((buf[2] << 8) + buf[3]) * 100;
-            data.CHARGER.IchargeUpdated = 1;
+            data.CHARGER.Icharge = ((buf[2] << 8) + buf[3]) * 100;
             // Charger flags
             int flags = buf[4];
             data.CHARGER.flags[0] = (flags >> 7) & 0x1;     // Flag 0
@@ -240,8 +237,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
                 for (int i = 0; i < 4; i++)
                 {
                     // i = number of cell within message
-                    data.BMS[n].cellVoltagemV[m * 4 + i]        = (buf[2 * i] << 8) + buf[2 * i + 1];
-                    data.BMS[n].cellVoltagemVUpdated[m * 4 + i] = 1;
+                    data.BMS[n].cellVoltagemV[m * 4 + i] = (buf[2 * i] << 8) + buf[2 * i + 1];
                 }
             }
             // Temperature frame
@@ -249,8 +245,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
             {
                 for (int i = 0; i < 2; i++)
                 {
-                    data.BMS[n].temperatures[i]        = buf[i] - 40;
-                    data.BMS[n].temperaturesUpdated[i] = 1;
+                    data.BMS[n].temperatures[i] = buf[i] - 40;
                 }
             }
         }
@@ -263,56 +258,39 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
         {
         case 0x274:
             // TPDO1
-            data.SEVCON.TPDO1_1        = (buf[0] << 8) + buf[1];
-            data.SEVCON.TPDO1_2        = (buf[2] << 8) + buf[3];
-            data.SEVCON.TPDO1_3        = ((int16_t)buf[4] << 8) + buf[5];
-            data.SEVCON.TPDO1_4        = (buf[6] << 8) + buf[7];
-            data.SEVCON.TPDO1_1Updated = 1;
-            data.SEVCON.TPDO1_2Updated = 1;
-            data.SEVCON.TPDO1_3Updated = 1;
-            data.SEVCON.TPDO1_4Updated = 1;
+            data.SEVCON.TPDO1_1 = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO1_2 = (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO1_3 = ((int16_t)buf[4] << 8) + buf[5];
+            data.SEVCON.TPDO1_4 = (buf[6] << 8) + buf[7];
             break;
 
         case 0x195:
             // TPDO2
-            data.SEVCON.TPDO2_1        = (buf[0] << 8) + buf[1];
-            data.SEVCON.TPDO2_2        = buf[2];
-            data.SEVCON.TPDO2_3        = (buf[3] << 8) + buf[4];
-            data.SEVCON.TPDO2_1Updated = 1;
-            data.SEVCON.TPDO2_2Updated = 1;
-            data.SEVCON.TPDO2_3Updated = 1;
+            data.SEVCON.TPDO2_1 = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO2_2 = buf[2];
+            data.SEVCON.TPDO2_3 = (buf[3] << 8) + buf[4];
             break;
 
         case 0x146:
             // TPDO3
-            data.SEVCON.TPDO3_1        = ((int16_t)buf[0] << 8) + buf[1];
-            data.SEVCON.TPDO3_2        = (buf[2] << 8) + buf[3];
-            data.SEVCON.TPDO3_3        = (buf[4] << 8) + buf[5];
-            data.SEVCON.TPDO3_4        = (buf[6] << 8) + buf[7];
-            data.SEVCON.TPDO3_1Updated = 1;
-            data.SEVCON.TPDO3_2Updated = 1;
-            data.SEVCON.TPDO3_3Updated = 1;
-            data.SEVCON.TPDO3_4Updated = 1;
+            data.SEVCON.TPDO3_1 = ((int16_t)buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO3_2 = (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO3_3 = (buf[4] << 8) + buf[5];
+            data.SEVCON.TPDO3_4 = (buf[6] << 8) + buf[7];
             break;
 
         case 0x168:
             // TPDO4
-            data.SEVCON.TPDO4_1        = (buf[0] << 8) + buf[1];
-            data.SEVCON.TPDO4_2        = (buf[2] << 8) + buf[3];
-            data.SEVCON.TPDO4_3        = (buf[4] << 8) + buf[5];
-            data.SEVCON.TPDO4_4        = (buf[6] << 8) + buf[7];
-            data.SEVCON.TPDO4_1Updated = 1;
-            data.SEVCON.TPDO4_2Updated = 1;
-            data.SEVCON.TPDO4_3Updated = 1;
-            data.SEVCON.TPDO4_4Updated = 1;
+            data.SEVCON.TPDO4_1 = (buf[0] << 8) + buf[1];
+            data.SEVCON.TPDO4_2 = (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO4_3 = (buf[4] << 8) + buf[5];
+            data.SEVCON.TPDO4_4 = (buf[6] << 8) + buf[7];
             break;
 
         case 0x370:
             // TPDO5
-            data.SEVCON.TPDO5_1        = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
-            data.SEVCON.TPDO5_2        = (buf[4] << 24) + (buf[5] << 16) + (buf[6] << 8) + buf[7];
-            data.SEVCON.TPDO5_1Updated = 1;
-            data.SEVCON.TPDO5_2Updated = 1;
+            data.SEVCON.TPDO5_1 = (buf[0] << 24) + (buf[1] << 16) + (buf[2] << 8) + buf[3];
+            data.SEVCON.TPDO5_2 = (buf[4] << 24) + (buf[5] << 16) + (buf[6] << 8) + buf[7];
             break;
         }
     }
@@ -323,53 +301,30 @@ int checkData()
 {
     int allOK = 1;
 
-    // Check all BMS data
+    dataToDefault();
+    return allOK;
+}
+
+
+void dataToDefault() // Set all values to -1 to check if we are receiving new data
+{
+    int d = -1;
+
+    data.allOK = d;
     for (int i = 0; i < 3; i++)
     {
-        // i = num BMS
-        int allUpdated = 1;
-
         for (int j = 0; j < 12; j++)
         {
-            allUpdated *= data.BMS[i].cellVoltagemVUpdated[j];
-            data.BMS[i].cellVoltagemVUpdated[j] = 0;
+            data.BMS[i].cellVoltagemV[j] = d;
         }
-
-        for (int j = 0; j < 2; j++)
-        {
-            allUpdated *= data.BMS[i].temperaturesUpdated[j];
-            data.BMS[i].temperaturesUpdated[j] = 0;
-        }
-
-        if (!allUpdated)
-        {
-            allOK = 0;
-            //Serial.println("Some BMS missing");
-        }
+        data.BMS[i].temperatures[0] = d;
+        data.BMS[i].temperatures[1] = d;
     }
-
-    // Check Charger Data
-    int allUpdated = 1;
-
-    allUpdated *= data.CHARGER.VtotalUpdated;
-    data.CHARGER.VtotalUpdated = 0;
-    allUpdated *= data.CHARGER.IchargeUpdated;
-    data.CHARGER.IchargeUpdated = 0;
-
+    data.CHARGER.Vtotal  = d;
+    data.CHARGER.Icharge = d;
     for (int i = 0; i < 5; i++)
     {
-        allUpdated           *= data.CHARGER.flags[i];
-        data.CHARGER.flags[i] = 0;
+        data.CHARGER.flags[i] = d;
     }
-
-    if (!allUpdated)
-    {
-        allOK = 0;
-        //Serial.println("No connection with CHARGER");
-    }
-
-    // Check SEVCON Data
-    allUpdated = 1;
-
-    return allOK;
+    data.SEVCON.TPDO1_1 = d;
 }
