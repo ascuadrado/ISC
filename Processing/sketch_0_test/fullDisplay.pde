@@ -1,9 +1,9 @@
 class FullDisplay {
   int margen = 15;
-  
+
   void drawBattery(float percentage){
     int batWidth = 50;
-    
+
     // Green bar
     fill(0,255,71);
     noStroke();
@@ -15,7 +15,7 @@ class FullDisplay {
     strokeWeight(4);
     noFill();
     rect(margen, height-margen, batWidth, -(height-2*margen), batWidth/2);
-    
+
     // Percentage indicators
     strokeWeight(1);
     fill(255);
@@ -28,14 +28,14 @@ class FullDisplay {
       text(String.format("%d",(10-i)*10)+" %", margen+batWidth+12+65, y+10);
     }
   }
-  
-  
+
+
   void drawAlert(boolean on){
     int x = margen+170;
     int y = margen+5;
     int w = 125;
     int h = 125;
-    
+
     if(!on){
       fill(10);
       noStroke();
@@ -49,7 +49,7 @@ class FullDisplay {
       shape(s, x, y, w, h);
     }
   }
-  
+
   void drawSpeed(int speed){
     textFont(digital);
     textAlign(RIGHT, BOTTOM);
@@ -59,17 +59,17 @@ class FullDisplay {
     textAlign(LEFT, BOTTOM);
     text("KM/H", 520, 333, 200, 100);
   }
-  
+
   void drawPower(float power){
     int h = 250;
     int powerW = 50;
-    
+
     // POWER
     textFont(digital);
     textSize(24);
     textAlign(CENTER, CENTER);
     text("POWER", 670, 130, 130, 60);
-    
+
     // Power meter
     fill(0,255,240);
     noStroke();
@@ -79,9 +79,9 @@ class FullDisplay {
     stroke(255);
     strokeWeight(4);
     noFill();
-    rect(710, 190, powerW, h, powerW/2);    
+    rect(710, 190, powerW, h, powerW/2);
   }
-  
+
   void drawBatteryV(float voltage){
     textFont(digital);
     fill(0,255,71);
@@ -93,6 +93,6 @@ class FullDisplay {
     text("MAX: 120V", 590, 20, 200, 40);
     text("MIN:  80V", 590, 60, 200, 40);
   }
-  
-  
+
+
 }

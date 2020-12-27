@@ -6,37 +6,22 @@ class Data {
 
     void update()
     {
-        json = loadJSONObject(fileName);
-        JSONArray  BMS         = json.getJSONArray("BMS");
-        JSONObject BMS1        = BMS.getJSONObject(0);
-        JSONObject BMS2        = BMS.getJSONObject(1);
-        JSONObject BMS3        = BMS.getJSONObject(2);
-        JSONArray  BMS1_v_json = BMS1.getJSONArray("cellVoltagemV");
-        JSONArray  BMS2_v_json = BMS2.getJSONArray("cellVoltagemV");
-        JSONArray  BMS3_v_json = BMS3.getJSONArray("cellVoltagemV");
-        int[] BMS1_v = BMS1_v_json.getIntArray();
-        int[] BMS2_v = BMS2_v_json.getIntArray();
-        int[] BMS3_v = BMS3_v_json.getIntArray();
-
-        int totalV = 0;
-        for (int i = 0; i < 12; i++)
-        {
-            totalV += BMS1_v[i];
+        totalVoltage = 129;
+        c.write("request Data\n");
+        while(c.available()==0){
+          delay(1);
+          print(1);
         }
-        for (int i = 0; i < 12; i++)
-        {
-            totalV += BMS2_v[i];
+        String data = c.readString();
+        data = data.substring(0, data.indexOf("\n"));
+        try{
+          json = parseJSONObject(data);
+          totalVoltage = json.getFloat("vtotal");
+          speed = json.getFloat("speed");
+          throttle = json.getFloat("power");
+        } catch (Exception e){
+          println(e);
         }
-        for (int i = 0; i < 12; i++)
-        {
-            totalV += BMS3_v[i];
-        }
-
-        totalVoltage = 1.0 * totalV / 1000;
-
-        JSONObject SEVCON = json.getJSONObject("SEVCON");
-        int        tpdo1  = SEVCON.getInt("TPDO1_1");
-        throttle = 1.0 * tpdo1 / 32768;
     }
 
     void display()

@@ -1,1 +1,1 @@
-/home/pi/Desktop/Rasp-main/CANCollect.py
+Rasp-main/main.py
