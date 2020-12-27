@@ -107,6 +107,7 @@ def save_to_db(general, charger, sevcon, bms1, bms2, bms3):
                   bms3['temperatures'][0], bms3['temperatures'][1]))
 
     conn.commit()
+    conn.close()
 
 
 def timer0():
