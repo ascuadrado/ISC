@@ -1,16 +1,44 @@
 #!/usr/bin/python3
+'''
+This python program manages all can communications
+Tasks of the program:
+1. Receive CAN messages
+2. Periodically write to database
+3. Respond to Processing queries
 
-# Imports
-import can
+1. Receive CAN messages
+    First thread is in charge of reading CAN messages, interpreting them and
+    saving the information in the data dictionaries (general, charger, sevcon,
+    bms1, bms2, bms3). It does not need to send any message since this is done
+    by the Arduino MEGA
+
+2. Periodically write to Database
+    Write entries for all the tables (general, charger, sevcon, bms1, bms2,
+    bms3) in the SQLite database periodically.
+
+3. Respond to Processing queries
+    The display will be shown through Processing. A socket connection is
+    established to share data between this program and the processing sketch
+    The processing sketch will send a message to this program and a json String
+    will be sent back: {"vtotal": 110.2, "power": 0.5, "speed": 119.3}
+    vtotal in volts, power in (0-1) and speed in km/h
+
+'''
+
+# External Imports
+#import can
 import time
 import threading
 import sqlite3
+import socket
+import os
+import json
 
-# File names
-dbFile = '/home/pi/Desktop/Rasp-main/Database.db'
+# Setup
+dbFile = 'Database.db'
+DBDelay = 2 # seconds
 
-# Data Setup
-timer0_period = 1  # seconds
+# Data
 general = dict()
 charger = dict()
 sevcon = dict()
@@ -19,15 +47,7 @@ bms2 = dict()
 bms3 = dict()
 bms = [bms1, bms2, bms3]
 
-# CAN Setup
-chargerID = 0x1806E7F4
-print("Welcome to CANCollect.py")
-can_interface = 'can0'
-bus = can.interface.Bus(can_interface, bustype='socketcan_native')
-
-# Timers
-
-
+# Auxiliary functions
 def init_dict():
     d = -1  # default value
     emptyV = [d, d, d, d, d, d, d, d, d, d, d, d]
@@ -47,14 +67,13 @@ def init_dict():
 
     general['allOK'] = d
 
-
 def save_to_db(general, charger, sevcon, bms1, bms2, bms3):
-    print(general)
-    print(charger)
-    print(sevcon)
-    print(bms1)
-    print(bms2)
-    print(bms3)
+    #print(general)
+    #print(charger)
+    #print(sevcon)
+    #print(bms1)
+    #print(bms2)
+    #print(bms3)
     conn = sqlite3.connect(dbFile)
     c = conn.cursor()
 
@@ -109,24 +128,21 @@ def save_to_db(general, charger, sevcon, bms1, bms2, bms3):
     conn.commit()
     conn.close()
 
+def fetch_data(s):
+    s = s.decode()
+    replyDict = dict()
+    replyDict['vtotal'] = 0
+    for b in bms:
+        replyDict['vtotal'] += sum(b['voltages'])
+    replyDict['power'] = 0.5
+    replyDict['speed'] = 119.12
+    reply = json.dumps(replyDict) + '\n'
+    return reply.encode()
 
-def timer0():
-    t = time.time()
-    print("Saving to DB")
-    general['timestamp'] = time.time()
-    general['date'] = time.strftime("%Y-%m-%d")
-    general['time'] = time.strftime("%H:%M:%S")
-    save_to_db(general, charger, sevcon, bms1, bms2, bms3)
-    init_dict()
-    print("DB took: " + str(1000*(time.time() - t)) + 'ms')
-    threading.Timer(timer0_period, timer0).start()
 
-
-# Script execution
-init_dict()
-timer0()
-while True:
-    #t = time.time()
+# Daemons
+def canManager():
+    print("Can manager online")
     msg = bus.recv()
     id = msg.arbitration_id
     if id > 300 and id < 400: # BMS
@@ -150,4 +166,76 @@ while True:
         charger['flags'][3] = msg.data[4]>>4 & 0x01
         charger['flags'][4] = msg.data[4]>>3 & 0x01
 
-    #print("MSG took: " + str(1000*(time.time() - t)) + 'ms')
+def dbManager():
+    print("Database manager online")
+    while True:
+        t = time.time()
+        general['timestamp'] = t
+        general['date'] = time.strftime("%Y-%m-%d")
+        general['time'] = time.strftime("%H:%M:%S")
+        save_to_db(general, charger, sevcon, bms1, bms2, bms3)
+        init_dict() # Reset dictionary to defaults to check if any system is disconnected
+        time.sleep(2-t) # Avoids time drifting (although we wouldn't mind)
+
+
+def serverManager():
+    print("Server manager online")
+    HOST = ''
+    PORT = 50007
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind((HOST, PORT))
+    s.listen(1)
+    while True:
+        try:
+            conn, addr = s.accept()
+            print('Connected by', addr)
+            while True:
+                reply = fetch_data(conn.recv(1024))
+                conn.send(reply)
+            conn.close()
+        except:
+            print("Connection closed")
+
+
+
+# Main execution
+if __name__ == "__main__":
+    # Create database if it does not exist
+    if not os.path.exists(dbFile):
+        print("No database, creating one")
+        os.system('sqlite3 "Database.db" < "createTables.sql"')
+
+    # Set dictionaries to default values
+    init_dict()
+
+    # Create threads for CAN, Processing Server and DB management
+    canM = threading.Thread(target=canManager, daemon=True)
+    dbM = threading.Thread(target=dbManager, daemon=True)
+    serverM = threading.Thread(target=serverManager, daemon=True)
+    #canM.start()
+    dbM.start()
+    serverM.start()
+
+    while True:
+        # Just wait while daemons do everything
+        time.sleep(1)
+
+
+
+    # End of file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    #

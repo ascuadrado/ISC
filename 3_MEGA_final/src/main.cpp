@@ -1,9 +1,9 @@
 // Libraries
-#include <Arduino.h> # For platformio development
-#include "mcp_can.h" # mcp2515 library
+#include <Arduino.h> // For platformio development
+#include "mcp_can.h" // mcp2515 library
 #include <SPI.h>
 
-#include "setup_config.h" # Contains all CAN configuration(pins, ids, etc)
+#include "setup_config.h" // Contains all CAN configuration(pins, ids, etc)
 
 // CAN instances
 MCP_CAN CAN0(CAN0CS);
@@ -31,14 +31,14 @@ void timer2();
 // Data structures
 struct Data data;
 
-// CAN MSG Buffer
+// CAN MSG Buffer (circular buffer -> if full, overwrites messages)
 #define N    20
 int           tailCounter = 0;
 int           headCounter = 0;
 struct CANMsg MSGBuffer[N];
 
 /*
- * Main program
+ * Setup function
  */
 void setup()
 {
@@ -72,6 +72,9 @@ void setup()
 }
 
 
+/*
+ * Loop function (runs continuously)
+ */
 void loop()
 {
     int currentMillis = millis();
@@ -106,14 +109,14 @@ void loop()
 }
 
 
-void timer0() // BMS and charger queries
+void timer0() // BMS queries
 {
     INT32U id       = BMS0ID;
     INT8U  ext      = 1;
     INT8U  len      = 2;
     INT8U  buf[len] = { (shuntVoltagemV >> 8) & 0xFF, shuntVoltagemV & 0xFF };
 
-    // Query all BMS
+    // Query one BMS at a time
     if (BMSQueryCounter == 0)
     {
         CAN0.sendMsgBuf(id, ext, len, buf);
@@ -129,10 +132,14 @@ void timer0() // BMS and charger queries
 
     BMSQueryCounter++;
     BMSQueryCounter = BMSQueryCounter % 3;
+}
 
-    id = chargerID;
-    int v      = (uint8_t)(maxChargeVoltage * 10);
-    int i      = (uint8_t)(maxChargeCurrent * 10);
+
+void timer1() // Query charger (every 1s)
+{
+    int id     = chargerID;
+    int v      = (maxChargeVoltage * 10);
+    int i      = (maxChargeCurrent * 10);
     int charge = chargeIfPossible;
 
     uint8_t messageCharger[5] = { (v >> 8) & 0xFF,
@@ -145,7 +152,7 @@ void timer0() // BMS and charger queries
 }
 
 
-void timer1() // Check data and output to serial
+void timer2() // Check data and output to serial
 {
     Serial.print("Check data: ");
     Serial.println(checkData());
@@ -153,13 +160,7 @@ void timer1() // Check data and output to serial
 }
 
 
-void timer2() // Free to use timer
-{
-    // Timer 2
-}
-
-
-void CAN0Interrupt()
+void CAN0Interrupt() // New msg on CAN0 -> read and into buffer
 {
     if (!CAN0.readMsgBuf(&MSGBuffer[headCounter].id, &MSGBuffer[headCounter].len, &MSGBuffer[headCounter].buf[0]))
     {
@@ -170,22 +171,18 @@ void CAN0Interrupt()
 }
 
 
-void CAN1Interrupt()
+void CAN1Interrupt()  // New msg on CAN0 -> read and into buffer
 {
-    int a = micros(); // Count time of interrupt
-
+    //int a = micros(); // Count time of interrupt (for debugging only)
     if (!CAN1.readMsgBuf(&MSGBuffer[headCounter].id, &MSGBuffer[headCounter].len, &MSGBuffer[headCounter].buf[0]))
     {
         MSGBuffer[headCounter].bus = 1;
         headCounter++;
         headCounter %= N;
     }
-
-    int b = micros();
-
-    Serial.print(a);
-    Serial.print(" - ");
-    Serial.println(b);
+    //int b = micros();
+    //Serial.print("t =  ");
+    //Serial.println(b-a);
 }
 
 
@@ -193,6 +190,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 {
     id = id & 0x1FFFFFFF;
 
+    // PRINT Message for debugging
     char message[128];
 
     sprintf(message, "Message on Bus %d, id: 0x%lx, len: %d", busN, id, len);
@@ -203,8 +201,9 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
         Serial.print(message);
     }
     Serial.println("\n\n");
+    // ----
 
-    // BMS and charger BUS
+    // BUS 0: BMS and charger, 250kbps
     if (busN == 0)
     {
         // Charger
@@ -251,7 +250,7 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
         }
     }
 
-    // SEVCON controller
+    // BUS 1: SEVCON controller
     if (busN == 1)
     {
         switch (id)
@@ -301,12 +300,13 @@ int checkData()
 {
     int allOK = 1;
 
+    // TODO: actually check data for errors or missing systems
     dataToDefault();
     return allOK;
 }
 
 
-void dataToDefault() // Set all values to -1 to check if we are receiving new data
+void dataToDefault() // Set all values to -1 to check if any system is disconnected
 {
     int d = -1;
 

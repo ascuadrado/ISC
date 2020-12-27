@@ -17,6 +17,7 @@
 #define maxChargeVoltage    120 // 120 volts
 #define chargeIfPossible    0   // 0 = don't charge
 
+// CANMsg structure for buffer in main program
 struct CANMsg
 {
     INT32U id;
@@ -25,47 +26,48 @@ struct CANMsg
     int    bus;
 };
 
+// Data structures (see datos.json to understand how they are organized)
 struct BMSData
 {
-    int cellVoltagemV[12] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int temperatures[2]   = { 0, 0 };
+    int cellVoltagemV[12];
+    int temperatures[2];
 };
 
 struct SEVCONData
 {
     // TPDO 1
-    int  TPDO1_1 = 0;
-    int  TPDO1_2 = 0;
-    int  TPDO1_3 = 0;
-    int  TPDO1_4 = 0;
+    int  TPDO1_1;
+    int  TPDO1_2;
+    int  TPDO1_3;
+    int  TPDO1_4;
 
     // TPDO 2
-    int  TPDO2_1 = 0;
-    int  TPDO2_2 = 0;
-    int  TPDO2_3 = 0;
+    int  TPDO2_1;
+    int  TPDO2_2;
+    int  TPDO2_3;
 
     // TPDO 3
-    int  TPDO3_1 = 0;
-    int  TPDO3_2 = 0;
-    int  TPDO3_3 = 0;
-    int  TPDO3_4 = 0;
+    int  TPDO3_1;
+    int  TPDO3_2;
+    int  TPDO3_3;
+    int  TPDO3_4;
 
     // TPDO 4
-    int  TPDO4_1 = 0;
-    int  TPDO4_2 = 0;
-    int  TPDO4_3 = 0;
-    int  TPDO4_4 = 0;
+    int  TPDO4_1;
+    int  TPDO4_2;
+    int  TPDO4_3;
+    int  TPDO4_4;
 
     // TPDO 5
-    long TPDO5_1 = 0;
-    long TPDO5_2 = 0;
+    long TPDO5_1;
+    long TPDO5_2;
 };
 
 struct CHARGERData
 {
-    int Vtotal   = 0;
-    int Icharge  = 0;
-    int flags[5] = { 0, 0, 0, 0, 0 };
+    int Vtotal;
+    int Icharge;
+    int flags[5];
 };
 
 struct Data
@@ -76,12 +78,12 @@ struct Data
     struct CHARGERData CHARGER;
 };
 
-
-
+/*
+ * writeData: Output all data for debugging
+ */
 void writeData(struct Data data)
 {
-    printf("Writing to file!\n");
-
+    Serial.println("Data:");
     char buffer[256];
 
     sprintf(buffer, "{\n");
@@ -133,40 +135,5 @@ void writeData(struct Data data)
     sprintf(buffer, "}\n");
     Serial.print(buffer);
     sprintf(buffer, "\n");
-    Serial.print(buffer);
-
-// Summary
-    int               max  = 0;
-    int               min  = 5000;
-    long unsigned int sum  = 0;
-    int               temp = data.BMS[1].temperatures[0];
-
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 12; j++)
-        {
-            int v = data.BMS[i].cellVoltagemV[j];
-            if (((i == 1) && (j >= 8)) || ((i == 2) && (j >= 10)))
-            {
-                continue;
-            }
-            sum += v;
-            if (v < min)
-            {
-                min = v;
-            }
-            if (v > max)
-            {
-                max = v;
-            }
-        }
-    }
-
-    if ((min < 3200) || (max > 4000) || (temp > 35))
-    {
-        Serial.println("ALERT, something is wrong!!!");
-        Serial.println("-----------------------------");
-    }
-    sprintf(buffer, "Max: %d, Min: %d, Total: %lu, temp: %d \n", max, min, sum, temp);
     Serial.print(buffer);
 }
