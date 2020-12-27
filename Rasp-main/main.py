@@ -16,6 +16,13 @@ Tasks of the program:
     Write entries for all the tables (general, charger, sevcon, bms1, bms2,
     bms3) in the SQLite database periodically.
 
+3. Respond to Processing queries
+    The display will be shown through Processing. A socket connection is
+    established to share data between this program and the processing sketch
+    The processing sketch will send a message to this program and a json String
+    will be sent back: {"vtotal": 110.2, "power": 0.5, "speed": 119.3}
+    vtotal in volts, power in (0-1) and speed in km/h
+
 '''
 
 # External Imports
