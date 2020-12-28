@@ -41,4 +41,3 @@ if __name__ == '__main__':
     read_from_database()
     clean_database()
     print(data)
-    
