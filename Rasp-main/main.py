@@ -26,7 +26,7 @@ Tasks of the program:
 '''
 
 # External Imports
-#import can
+import can
 import time
 import threading
 import sqlite3
@@ -37,6 +37,7 @@ import json
 # Setup
 dbFile = 'Database.db'
 DBDelay = 2 # seconds
+chargerID = 0x1806E7F4
 
 # Data
 general = dict()
@@ -134,7 +135,7 @@ def fetch_data(s):
     replyDict['vtotal'] = 0
     for b in bms:
         replyDict['vtotal'] += sum(b['voltages'])
-    replyDict['power'] = 0.5
+    replyDict['power'] = sevcon['throttle']
     replyDict['speed'] = 119.12
     reply = json.dumps(replyDict) + '\n'
     return reply.encode()
@@ -143,28 +144,37 @@ def fetch_data(s):
 # Daemons
 def canManager():
     print("Can manager online")
-    msg = bus.recv()
-    id = msg.arbitration_id
-    if id > 300 and id < 400: # BMS
-        n = int((id-300)/10) # BMS number (0-2) -> 3 bms modules
-        m = (id-300-n*10-1) # Message number (0-3) -> 4 different messages
+    bus = can.interface.Bus('can0', bustype='socketcan_native')
+    while True:
+        msg = bus.recv()
+        id = msg.arbitration_id
+        if (id > 300) and (id < 400): # BMS
+            n = int((id-300)/10) # BMS number (0-2) -> 3 bms modules
+            m = (id-300-n*10-1) # Message number (0-3) -> 4 different messages
 
-        if m>=0 and m<3: # voltage frame
-            for i in range(4): # we read 4 cell voltages
-                bms[n]['voltages'][4*m+i] = (msg.data[2*i]<<8) + msg.data[2*i+1]
-        else: # temperature frame
-            for i in range(2): # we read 2 temperatures
-                bms[n]['temperatures'][i] = msg.data[i]-40
+            if m>=0 and m<3: # voltage frame
+                for i in range(4): # we read 4 cell voltages
+                    bms[n]['voltages'][4*m+i] = (msg.data[2*i]<<8) + msg.data[2*i+1]
+            else: # temperature frame
+                for i in range(2): # we read 2 temperatures
+                    bms[n]['temperatures'][i] = msg.data[i]-40
 
-    elif id == chargerID: # CHARGER
-        print(msg)
-        charger['voltage'] = ((msg.data[0]<<8) + msg.data[1])/10
-        charger['current'] = ((msg.data[2]<<8) + msg.data[3])/10
-        charger['flags'][0] = msg.data[4]>>7 & 0x01
-        charger['flags'][1] = msg.data[4]>>6 & 0x01
-        charger['flags'][2] = msg.data[4]>>5 & 0x01
-        charger['flags'][3] = msg.data[4]>>4 & 0x01
-        charger['flags'][4] = msg.data[4]>>3 & 0x01
+        elif id == chargerID: # CHARGER
+            print(msg)
+            charger['voltage'] = ((msg.data[0]<<8) + msg.data[1])/10
+            charger['current'] = ((msg.data[2]<<8) + msg.data[3])/10
+            charger['flags'][0] = msg.data[4]>>7 & 0x01
+            charger['flags'][1] = msg.data[4]>>6 & 0x01
+            charger['flags'][2] = msg.data[4]>>5 & 0x01
+            charger['flags'][3] = msg.data[4]>>4 & 0x01
+            charger['flags'][4] = msg.data[4]>>3 & 0x01
+
+        elif id == 0x103: # SEVCON
+            sevcon['throttle'] = ((msg.data[1]<<8) + msg.data[0])/32767
+            
+        
+        
+        
 
 def dbManager():
     print("Database manager online")
@@ -175,7 +185,7 @@ def dbManager():
         general['time'] = time.strftime("%H:%M:%S")
         save_to_db(general, charger, sevcon, bms1, bms2, bms3)
         init_dict() # Reset dictionary to defaults to check if any system is disconnected
-        time.sleep(2-t) # Avoids time drifting (although we wouldn't mind)
+        time.sleep(2) # Avoids time drifting (although we wouldn't mind)
 
 
 def serverManager():
@@ -212,7 +222,7 @@ if __name__ == "__main__":
     canM = threading.Thread(target=canManager, daemon=True)
     dbM = threading.Thread(target=dbManager, daemon=True)
     serverM = threading.Thread(target=serverManager, daemon=True)
-    #canM.start()
+    canM.start()
     dbM.start()
     serverM.start()
 

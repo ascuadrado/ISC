@@ -1,5 +1,7 @@
+import processing.net.*; 
+
+Client c; 
 JSONObject json;
-String fileName = "datos-ejm.json";
 
 float maxVoltage = 135.0;
 float minVoltage = 80.0;
@@ -7,43 +9,52 @@ float minVoltage = 80.0;
 PFont digital;
 PFont roboto;
 
-Data data = new Data();
+Data        data    = new Data();
 FullDisplay display = new FullDisplay();
 
-void printTime(){
-  print(hour());
-  print(":");
-  print(minute());
-  print(":");
-  println(second());
+void printTime()
+{
+    print(hour());
+    print(":");
+    print(minute());
+    print(":");
+    println(second());
 }
 
-void setup() {
-  printTime();
-  digital = createFont("Digital.ttf", 150);
-  roboto = createFont("Roboto-Regular.ttf", 24);
 
-  size(800,480);
-  //noCursor();
-  //fullScreen();
-  
-  println("Setup Done");
+void setup()
+{
+    printTime();
+    digital = createFont("Digital.ttf", 150);
+    roboto  = createFont("Roboto-Regular.ttf", 24);
+    c = new Client(this, "127.0.0.1", 50007);  // Connect to server on port 80
+    json = new JSONObject();
+
+    size(800, 480);
+    //noCursor();
+    //fullScreen();
+
+    println("Setup Done");
 }
 
-void draw(){
-  background(0);
-  
-  data.update();
-  
-  //display.drawBattery(1-1.0*mouseX/700);
-  display.drawBattery((data.totalVoltage-minVoltage)/(maxVoltage-minVoltage));
-  display.drawAlert(true);
-  display.drawSpeed((int)data.speed);
-  display.drawPower(1-1.0*mouseY/480);
-  display.drawBatteryV(data.totalVoltage);
-  
-  //rect(0,0, totalV, totalV);
 
-  //text("Total Voltage detected: ", 10,20);
-  //text(1.0/1000, 10, 40);
+void draw()
+{
+    background(0);
+
+    data.update();
+
+
+    //display.drawBattery(1-1.0*mouseX/700);
+    display.drawBattery((data.totalVoltage - minVoltage) / (maxVoltage - minVoltage));
+    display.drawAlert(true);
+    display.drawSpeed((int)data.speed);
+    display.drawPower(data.throttle);
+    display.drawBatteryV(data.totalVoltage);
+    //println(frameRate);
+
+    //rect(0,0, totalV, totalV);
+
+    //text("Total Voltage detected: ", 10,20);
+    //text(1.0/1000, 10, 40);
 }

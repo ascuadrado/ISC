@@ -14,8 +14,8 @@ int startMillis0    = 0;
 int startMillis1    = 0;
 int startMillis2    = 0;
 int period0         = 1000;
-int period1         = 10000;
-int period2         = 1000;
+int period1         = 1000;
+int period2         = 3000;
 int BMSQueryCounter = 0;
 
 // Functions
@@ -24,9 +24,9 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
 int checkData();
 void CAN0Interrupt();
 void CAN1Interrupt();
-void timer0();
-void timer1();
-void timer2();
+void timer0(); // Query BMS (one at a time)
+void timer1(); // Query charger
+void timer2(); // Check data and debug
 
 // Data structures
 struct Data data;
@@ -87,14 +87,12 @@ void loop()
 
     if (currentMillis - startMillis1 >= period1)   // Timer1
     {
-        //checkData();
         timer1();
         startMillis1 = currentMillis;
     }
 
     if (currentMillis - startMillis2 >= period2)   // Timer2
     {
-        //checkData();
         timer2();
         startMillis2 = currentMillis;
     }
@@ -137,10 +135,10 @@ void timer0() // BMS queries
 
 void timer1() // Query charger (every 1s)
 {
-    int id     = chargerID;
-    int v      = (maxChargeVoltage * 10);
-    int i      = (maxChargeCurrent * 10);
-    int charge = chargeIfPossible;
+    long id     = chargerIDSend;
+    int  v      = (maxChargeVoltage * 10);
+    int  i      = (maxChargeCurrent * 10);
+    int  charge = chargeIfPossible;
 
     uint8_t messageCharger[5] = { (v >> 8) & 0xFF,
                                   v & 0xFF,
@@ -149,14 +147,15 @@ void timer1() // Query charger (every 1s)
                                   (1 - charge) };
 
     CAN0.sendMsgBuf(id, 1, 5, messageCharger);
+    Serial.println("Query charger");
 }
 
 
 void timer2() // Check data and output to serial
 {
+    writeData(data);
     Serial.print("Check data: ");
     Serial.println(checkData());
-    writeData(data);
 }
 
 
@@ -194,32 +193,33 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
     char message[128];
 
     sprintf(message, "Message on Bus %d, id: 0x%lx, len: %d", busN, id, len);
-    Serial.println(message);
+    //Serial.println(message);
     for (int i = 0; i < len; i++)
     {
         sprintf(message, " 0x%.2X", buf[i]);
-        Serial.print(message);
+        //Serial.print(message);
     }
-    Serial.println("\n\n");
+    //Serial.println();
+
     // ----
 
     // BUS 0: BMS and charger, 250kbps
     if (busN == 0)
     {
         // Charger
-        if ((id == chargerID))
+        if ((id == chargerIDRecv))
         {
             // Voltage measured by charger
-            data.CHARGER.Vtotal = ((buf[0] << 8) + buf[1]) * 100;
+            data.CHARGER.Vtotal = ((buf[0] << 8) + buf[1]);
             // Instant charging current
-            data.CHARGER.Icharge = ((buf[2] << 8) + buf[3]) * 100;
+            data.CHARGER.Icharge = ((buf[2] << 8) + buf[3]);
             // Charger flags
             int flags = buf[4];
-            data.CHARGER.flags[0] = (flags >> 7) & 0x1;     // Flag 0
-            data.CHARGER.flags[1] = (flags >> 6) & 0x1;     // Flag 1
-            data.CHARGER.flags[2] = (flags >> 5) & 0x1;     // Flag 2
-            data.CHARGER.flags[3] = (flags >> 4) & 0x1;     // Flag 3
-            data.CHARGER.flags[4] = (flags >> 3) & 0x1;     // Flag 4
+            data.CHARGER.flags[0] = (flags >> 0) & 0x1;     // Flag 0
+            data.CHARGER.flags[1] = (flags >> 1) & 0x1;     // Flag 1
+            data.CHARGER.flags[2] = (flags >> 2) & 0x1;     // Flag 2
+            data.CHARGER.flags[3] = (flags >> 3) & 0x1;     // Flag 3
+            data.CHARGER.flags[4] = (flags >> 4) & 0x1;     // Flag 4
         }
 
         // BMS Modules
@@ -298,9 +298,99 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 
 int checkData()
 {
+    // allOK = 0 means something is wrong
     int allOK = 1;
+    // intended to debug missing systems: {bms1,bms2,bms3,charger,sevcon}
+    int sysFlags[5] = { 1, 1, 1, 1, 1 };
 
-    // TODO: actually check data for errors or missing systems
+    int  minV = data.BMS[0].cellVoltagemV[0];
+    int  maxV = minV;
+    int  minT = data.BMS[0].temperatures[0];
+    int  maxT = minT;
+    long sumV = 0;
+
+    // Check if are BMS connected & calculate maxV, minV, maxT, minT, sumV
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 12; j++)
+        {
+            int v = data.BMS[i].cellVoltagemV[j];
+            if (v == -1)
+            {
+                allOK       = 0;
+                sysFlags[i] = 0;
+            }
+            else if (((i == 1) && (j >= 8)) || ((i == 2) && (j >= 10)))
+            {
+                continue;
+            }
+            sumV += v;
+            if (v < minV)
+            {
+                minV = v;
+            }
+            else if (v > maxV)
+            {
+                maxV = v;
+            }
+        }
+        for (int j = 0; j < 2; j++)
+        {
+            int t = data.BMS[i].temperatures[j];
+            if (t == -1)
+            {
+                allOK       = 0;
+                sysFlags[i] = 0;
+            }
+            if (t < minT)
+            {
+                minT = t;
+            }
+            else if (t > maxT)
+            {
+                maxT = t;
+            }
+        }
+    }
+
+    if ((minV < 3200) || (maxV > 4000) || (maxT > 35))
+    {
+        allOK = 0;
+    }
+
+    // Check if charger connected
+    if ((data.CHARGER.Vtotal == -1) || (data.CHARGER.Icharge == -1))
+    {
+        sysFlags[3] = 0;
+    }
+    for (int i = 0; i < 5; i++)
+    {
+        if (data.CHARGER.flags[i] == 0)
+        {
+            allOK = 0;
+        }
+    }
+
+    // Check if sevcon connected
+    if (data.SEVCON.TPDO1_1 == -1)
+    {
+        sysFlags[4] = 0;
+        allOK       = 0;
+    }
+
+    // Print summary stats
+    char buffer[64];
+
+    sprintf(buffer, "MaxV: %d, MinV: %d, TotalV: %ld, maxT: %d \n", maxV, minV, sumV, maxT);
+    Serial.print(buffer);
+    Serial.println("-----------------------------");
+
+    if (!allOK)
+    {
+        Serial.println("-----------------------------");
+        Serial.println("SOMETHING's WRONG!!!");
+        Serial.println("-----------------------------");
+    }
     dataToDefault();
     return allOK;
 }

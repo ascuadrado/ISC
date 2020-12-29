@@ -11,11 +11,12 @@
 
 // Setup parameters
 #define BMS0ID              0x12C
-#define chargerID           0x1806E7F4
+#define chargerIDSend       0x1806E7F4
+#define chargerIDRecv       0x18FF50E7
 #define shuntVoltagemV      0
-#define maxChargeCurrent    1   // 1 amp
-#define maxChargeVoltage    120 // 120 volts
-#define chargeIfPossible    0   // 0 = don't charge
+#define maxChargeCurrent    10  // 1 amp
+#define maxChargeVoltage    105 // 120 volts
+#define chargeIfPossible    1   // 0 = don't charge
 
 // CANMsg structure for buffer in main program
 struct CANMsg
