@@ -60,7 +60,7 @@ class FullDisplay {
     text("KM/H", 520, 333, 200, 100);
   }
 
-  void drawPower(float power){
+  void drawPower(float torque, float throttle){
     int h = 250;
     int powerW = 50;
 
@@ -70,16 +70,21 @@ class FullDisplay {
     textAlign(CENTER, CENTER);
     text("POWER", 670, 130, 130, 60);
 
-    // Power meter
+    // Torque meter
     fill(0,255,240);
     noStroke();
     rect(710, 190+h, powerW, -h, powerW/2);
     fill(0);
-    rect(710, 190, powerW, h*(1-power));
+    rect(710, 190, powerW, h*(1-torque));
     stroke(255);
     strokeWeight(4);
     noFill();
     rect(710, 190, powerW, h, powerW/2);
+    
+    // Throttle indicator
+    stroke(255);
+    strokeWeight(2);
+    line(710+powerW/2-40, 190+h*(1-throttle), 710+powerW/2+40, 190+h*(1-throttle));
   }
 
   void drawBatteryV(float voltage){
@@ -93,6 +98,30 @@ class FullDisplay {
     text("MAX: 120V", 590, 20, 200, 40);
     text("MIN:  80V", 590, 60, 200, 40);
   }
-
+  
+  
+  void drawOpMode(String mode){
+    textFont(digital);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(50);
+    text(mode, 149, 141, 323, 96);
+    textSize(40);
+  }
+  
+  void drawTestingData(){
+    textFont(roboto);
+    fill(255);
+    textAlign(LEFT, TOP);
+    textSize(18);
+    String fullText = "";
+    fullText += "Testing data:\n\n";
+    fullText += "maxCellV: " + String.format("%.3f", data.maxCellV)+" v\n";
+    fullText += "minCellV: " + String.format("%.3f", data.minCellV)+" v\n";
+    fullText += "maxTemp: " + String.format("%.3f", data.maxTemp)+" ºC\n";
+    fullText += "capacitorV: " + String.format("%.1f", data.capacitorV)+" v\n";
+    fullText += "velocity: " + String.format("%.0f", data.velocity)+" rpm\n";
+    text(fullText, 507, 124, 184, 224);
+  }
 
 }

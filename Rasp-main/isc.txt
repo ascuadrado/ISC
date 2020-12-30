@@ -1,0 +1,46 @@
+TPDOs:
+
+1)ID: 0x101
+Target Id (16) - addr 0x4600,5
+Id (16) - addr 0x4600,7
+Target Iq (16) - addr. 0x4600,6
+Iq (16) - addr. 0x4600,8
+
+2)ID:0x102
+Battery voltage (16) - addr. 0x5100,1
+Battery current (16) - addr. 0x5100,2
+Line contactor (16) - addr. 0x2400,0
+Capacitor voltage (16) - addr. 0x4602,18
+
+3)ID:0x103
+Throttle value (16) - addr. 0x2620,0
+Target torque (16) - addr. 0x6071,0
+Torque (16) - addr. 0x6077,0
+
+4)ID:0x104
+Heatsink temperature (8) - addr. 0x5100,4
+
+5)ID:105
+Maximum motor speed (32) - addr. 0x6080,0
+Velocity (32) - addr. 0x606c,0
+
+
+Example:
+
+  can0  101   [8]  DB FF 21 FF FE 00 1E 01
+  can0  102   [8]  77 06 42 00 00 09 73 06
+  can0  103   [6]  D8 02 16 00 16 00
+  can0  104   [1]  15
+  can0  105   [8]  B0 09 00 00 94 06 00 00
+
+Data = []
+Data.append([0xDB, 0xFF, 0x21, 0xFF, 0xFE, 0x00, 0x1E, 0x01])
+Data.append([0x77, 0x06, 0x42, 0x00, 0x00, 0x09, 0x73, 0x06])
+Data.append([0xD8, 0x02, 0x16, 0x00, 0x16, 0x00])
+Data.append([0x15])
+Data.append([0xB0, 0x09, 0x00, 0x00, 0x94, 0x06, 0x00, 0x00])
+Data
+
+30069
+
+
