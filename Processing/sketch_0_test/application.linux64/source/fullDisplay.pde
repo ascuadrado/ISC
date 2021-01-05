@@ -95,8 +95,8 @@ class FullDisplay {
     text(String.format("%.1f",voltage)+"V", 320, 20, 250, 80);
     textSize(22);
     fill(255);
-    text("MAX: 120V", 590, 20, 200, 40);
-    text("MIN:  80V", 590, 60, 200, 40);
+    text(String.format("MAX: %.0fV", maxVoltage), 590, 20, 200, 40);
+    text(String.format("MIN: %.0fV", minVoltage), 590, 60, 200, 40);
   }
   
   

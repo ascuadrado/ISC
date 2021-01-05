@@ -6,8 +6,8 @@ dbFile = 'Database.db'
 DBDelay = 2 # seconds
 chargerID = 0x1806E7F4
 rpmToSpeedMultiplier = 1
-maxVoltage = 4*30
-minVoltage = 3*30 #
+maxVoltage = 4.2*30
+minVoltage = 2.8*30 #
 soc_method = 0 # 0=battery voltage, 1=integrate current loss
 battery_capacity = 70*1000 # Milliamps-hour
 
@@ -98,11 +98,11 @@ class ISCData:
         bms2 = self.bms2
         bms3 = self.bms3
 
-        c.execute("INSERT INTO general (timestamp, date, time, allOK,"
+        c.execute("INSERT INTO general (timestamp, date, time, allOK, stateOfCharge,"
                   "sevconConnected, chargerConnected, bms1Connected,"
-                  "bms2Connected, bms3Connected) VALUES (?,?,?,?,?,?,?,?,?)",
+                  "bms2Connected, bms3Connected) VALUES (?,?,?,?,?,?,?,?,?,?)",
                   (general['timestamp'], general['date'], general['time'],
-                   general['allOK'], general['sevconConnected'],
+                   general['allOK'], general['stateOfCharge'], general['sevconConnected'],
                    general['chargerConnected'], general['bms1Connected'],
                    general['bms2Connected'], general['bms3Connected']))
 
@@ -180,7 +180,7 @@ class ISCData:
 
                 if m>=0 and m<3: # voltage frame
                     for i in range(4): # we read 4 cell voltages
-                        self.bms[n]['voltages'][4*m+i] = (msg[2*i]<<8) + msg[2*i+1]
+                        self.bms[n]['voltages'][4*m+i] = ((msg[2*i]<<8) + msg[2*i+1])*1.0/1000
                 else: # temperature frame
                     for i in range(2): # we read 2 temperatures
                         self.bms[n]['temperatures'][i] = msg[i]-40
@@ -206,7 +206,7 @@ class ISCData:
             elif id == 0x102:
                 self.sevcon['battery_voltage'] = ((msg[1]<<8)+msg[0])*0.0625
                 self.sevcon['battery_current'] = ((msg[3]<<8)+msg[2])*0.0625
-                dischargeIntegrator.append(self.sevcon['battery_current'])
+                self.dischargeIntegrator.append(self.sevcon['battery_current'])
                 self.sevcon['line_contactor'] = ((msg[5]<<8)+msg[4])*1.0
                 self.sevcon['capacitor_voltage'] = ((msg[7]<<8)+msg[6])*0.0625
             elif id == 0x103:
@@ -255,7 +255,8 @@ class ISCData:
             v = []
             for b in self.bms:
                 v+=(b.get('voltages'))
-            self.general['stateOfCharge'] = (float(sum(v))-minVoltage)/(maxVoltage-minVoltage)
+            print(sum(v))
+            self.general['stateOfCharge'] = 1.0*(float(sum(v))-minVoltage)/(maxVoltage-minVoltage)
         elif method == 1:
             new_discharge = sum(dischargeIntegrator)
             self.general['stateOfCharge'] -= new_discharge/battery_capacity

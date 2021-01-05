@@ -24,12 +24,12 @@ void setup()
     data    = new Data();
     display = new FullDisplay();
 
-    size(800, 480);
-    //noCursor();
-    //fullScreen();
+    //size(800, 480);
+    noCursor();
+    fullScreen();
     
     // Output more information
-    data.testing = true;
+    data.testing = false;
 
     println("Setup Done");
 }

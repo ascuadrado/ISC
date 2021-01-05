@@ -1,3 +1,3 @@
-static float maxVoltage = 135.0;
-static float minVoltage = 80.0;
+static float maxVoltage = 4.2*30;
+static float minVoltage = 2.8*30;
 static int margen = 15;

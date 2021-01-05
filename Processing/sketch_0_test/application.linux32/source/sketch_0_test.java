@@ -42,12 +42,12 @@ public void setup()
     data    = new Data();
     display = new FullDisplay();
 
+    //size(800, 480);
+    noCursor();
     
-    //noCursor();
-    //fullScreen();
     
     // Output more information
-    data.testing = true;
+    data.testing = false;
 
     println("Setup Done");
 }
@@ -94,11 +94,9 @@ class Data {
     public void update()
     {        
         c.write("request Data\n");
-        print("data request - ");
         
         while(c.available()==0){
           delay(1);
-          print(1);
         }
         
         String data = c.readString();
@@ -127,7 +125,6 @@ class Data {
         } catch (Exception e){
           println(e);
         }
-        println();
     }
 }
 class FullDisplay {
@@ -227,8 +224,8 @@ class FullDisplay {
     text(String.format("%.1f",voltage)+"V", 320, 20, 250, 80);
     textSize(22);
     fill(255);
-    text("MAX: 120V", 590, 20, 200, 40);
-    text("MIN:  80V", 590, 60, 200, 40);
+    text(String.format("MAX: %.0fV", maxVoltage), 590, 20, 200, 40);
+    text(String.format("MIN: %.0fV", minVoltage), 590, 60, 200, 40);
   }
   
   
@@ -260,7 +257,7 @@ class FullDisplay {
 static float maxVoltage = 135.0f;
 static float minVoltage = 80.0f;
 static int margen = 15;
-  public void settings() {  size(800, 480); }
+  public void settings() {  fullScreen(); }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "sketch_0_test" };
     if (passedArgs != null) {

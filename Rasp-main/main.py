@@ -1,3 +1,4 @@
+
 #!/usr/bin/python3
 '''
 This python program manages all can communications
@@ -26,7 +27,7 @@ Tasks of the program:
 '''
 
 # External Imports
-#import can
+import can
 import threading
 import socket
 import os
@@ -39,13 +40,19 @@ import configFile
 data = configFile.ISCData()
 
 # Daemons
-def canManager():
-    print("Can manager online")
-    bus = can.interface.Bus('can0', bustype='socketcan_native')
+def can0Manager():
+    print("Can0 manager online")
+    bus0 = can.interface.Bus('can0', bustype='socketcan_native')
     while True:
-        msg = bus.recv()
-        data.interpret_can_msg()
+        msg = bus0.recv()
+        data.interpret_can_msg(0, msg.arbitration_id, msg.data)
 
+def can1Manager():
+    print("Can1 manager online")
+    bus1 = can.interface.Bus('can1', bustype='socketcan_native')
+    while True:
+        msg = bus1.recv()
+        data.interpret_can_msg(1, msg.arbitration_id, msg.data)
 
 def dbManager():
     print("Database manager online")
@@ -72,24 +79,34 @@ def serverManager():
         except:
             print("Connection closed")
 
-
+def processingManager():
+    print("Processing starting")
+    os.system("export DISPLAY=:0.0; /home/pi/Desktop/sketch_0_test/application.linux32/sketch_0_test")
+    time.sleep(1)
 
 # Main execution
 if __name__ == "__main__":
     # Create database if it does not exist
+    os.chdir('Desktop/Rasp-main')
+    os.system('sudo ip link set can0 up type can bitrate 250000')
+    os.system('sudo ip link set can1 up type can bitrate 500000')
     if not os.path.exists(configFile.dbFile):
         print("No database, creating one")
         os.system('sqlite3 "Database.db" < "createTables.sql"')
     else:
         pass
     # Create threads for CAN, Processing Server and DB management
-    canM = threading.Thread(target=canManager, daemon=True)
+    can0M = threading.Thread(target=can0Manager, daemon=True)
+    can1M = threading.Thread(target=can1Manager, daemon=True)
     dbM = threading.Thread(target=dbManager, daemon=True)
     serverM = threading.Thread(target=serverManager, daemon=True)
+    processingM = threading.Thread(target=processingManager, daemon=True)
     # And start those threads
-    #canM.start()
+    can0M.start()
+    can1M.start()
     dbM.start()
     serverM.start()
+    processingM.start()
 
     while True:
         # Just wait while daemons do everything

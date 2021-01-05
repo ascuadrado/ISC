@@ -20,11 +20,9 @@ class Data {
     void update()
     {        
         c.write("request Data\n");
-        print("data request - ");
         
         while(c.available()==0){
           delay(1);
-          print(1);
         }
         
         String data = c.readString();
@@ -53,6 +51,5 @@ class Data {
         } catch (Exception e){
           println(e);
         }
-        println();
     }
 }
