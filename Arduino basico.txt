@@ -1,0 +1,11 @@
+Conexiones (en setup_config.h):
+
+#define CAN0Speed           CAN_250KBPS
+#define CAN0IntPin          2
+#define CAN0CS              53
+
+#define CAN1Speed           CAN_500KBPS
+#define CAN1IntPin          3
+#define CAN1CS              48
+
+Ahora mismo no comprueba nada (sólo está escuchando)

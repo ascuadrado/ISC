@@ -29,7 +29,7 @@ void setup()
     fullScreen();
     
     // Output more information
-    data.testing = false;
+    data.testing = true;
 
     println("Setup Done");
 }

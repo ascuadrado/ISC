@@ -1,3 +1,5 @@
+
+
 SETUP RPI:
 
 1. change region to spain (keyboard)
@@ -39,12 +41,8 @@ setup CAN:
 		dtparam=spi=on
 		dtoverlay=mcp2515-can0,oscillator=8000000,interrupt=25
 		dtoverlay=mcp2515-can1,oscillator=8000000,interrupt=24
-	or execute:
-		echo dtparam=spi=on | sudo tee -a /boot/config.txt
-		echo dtoverlay=mcp2515-can0,oscillator=8000000,interrupt=25 | sudo tee -a /boot/config.txt
-		echo dtoverlay=mcp2515-can1,oscillator=8000000,interrupt=24 | sudo tee -a /boot/config.txt
 Start CAN
-	manual:
+	manual (ya se hace en main.py):
 		sudo ip link set can0 up type can bitrate 250000
 		sudo ip link set can1 up type can bitrate 500000
 
@@ -65,3 +63,5 @@ Execute processing
 Automatic run on reboot
 	crontab -e -> Add to file:
 		@reboot python3 /home/pi/Desktop/Rasp-main/main.py > /home/pi/Desktop/Rasp-main/log.txt
+
+

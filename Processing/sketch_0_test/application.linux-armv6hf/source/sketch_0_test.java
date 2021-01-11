@@ -47,7 +47,7 @@ public void setup()
     
     
     // Output more information
-    data.testing = false;
+    data.testing = true;
 
     println("Setup Done");
 }
@@ -254,8 +254,8 @@ class FullDisplay {
   }
 
 }
-static float maxVoltage = 135.0f;
-static float minVoltage = 80.0f;
+static float maxVoltage = 4.2f*30;
+static float minVoltage = 2.8f*30;
 static int margen = 15;
   public void settings() {  fullScreen(); }
   static public void main(String[] passedArgs) {

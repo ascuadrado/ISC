@@ -167,7 +167,7 @@ void simBus0Data()
     INT8U  ext          = 1;
     INT8U  len          = 2;
     INT8U  buf[len]     = { (shuntVoltagemV >> 8) & 0xFF, shuntVoltagemV & 0xFF };
-    INT8U  vresponse[8] = { 13, 134, 13, 134, 13, 134, 13, 134 };
+    INT8U  vresponse[8] = { 12, 140, 12, 120, 12, 120, 13, 120 };
     INT8U  tresponse[8] = { 56, 56, 0, 0, 0, 0, 0, 0 };
 
     // Charger msgs

@@ -1,0 +1,16 @@
+Conexiones: 
+CAN0: 
+	Int0->GPIO24
+	CS0 ->GPIO7
+CAN1: 
+
+	Int0->GPIO25
+	CS0 ->GPIO8
+
+Setup:
+	Funciona automáticamente:
+	- Ejecuta main.py y lo hace todo
+	(necesita tener 2 carpetas en el desktop: Rasp-main y sketch_0_test)
+	Tarda 55 seg en arrancar
+
+Mas detalles en RPI setup.txt
