@@ -36,7 +36,7 @@ import json
 
 # Setup
 dbFile = 'Database.db'
-DBDelay = 2 # seconds
+DBDelay = 2 # seconds to write to db
 chargerID = 0x1806E7F4
 
 # Data
@@ -171,10 +171,7 @@ def canManager():
 
         elif id == 0x103: # SEVCON
             sevcon['throttle'] = ((msg.data[1]<<8) + msg.data[0])/32767
-            
-        
-        
-        
+
 
 def dbManager():
     print("Database manager online")
@@ -185,7 +182,7 @@ def dbManager():
         general['time'] = time.strftime("%H:%M:%S")
         save_to_db(general, charger, sevcon, bms1, bms2, bms3)
         init_dict() # Reset dictionary to defaults to check if any system is disconnected
-        time.sleep(2) # Avoids time drifting (although we wouldn't mind)
+        time.sleep(2)
 
 
 def serverManager():

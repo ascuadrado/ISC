@@ -133,6 +133,7 @@ void timer0()
      */
 
     simBus0Data();
+    simBus1Data();
 }
 
 
@@ -167,7 +168,7 @@ void simBus0Data()
     INT8U  len          = 2;
     INT8U  buf[len]     = { (shuntVoltagemV >> 8) & 0xFF, shuntVoltagemV & 0xFF };
     INT8U  vresponse[8] = { 13, 134, 13, 134, 13, 134, 13, 134 };
-    INT8U  tresponse[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    INT8U  tresponse[8] = { 56, 56, 0, 0, 0, 0, 0, 0 };
 
     // Charger msgs
     int     v           = (maxChargeVoltage * 10);
@@ -184,34 +185,34 @@ void simBus0Data()
     if (BMSQueryCounter == 0)
     {
         // BMS1
-        CAN1.sendMsgBuf(id, ext, len, buf);
-        CAN1.sendMsgBuf(id + 1, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 2, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 3, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 4, ext, 8, tresponse);
+        CAN0.sendMsgBuf(id, ext, len, buf);
+        CAN0.sendMsgBuf(id + 1, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 2, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 3, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 4, ext, 8, tresponse);
 
         // Charger
-        CAN1.sendMsgBuf(chargerID, 1, 5, charger1);
-        CAN1.sendMsgBuf(chargerID, 1, 5, charger2);
+        CAN0.sendMsgBuf(chargerID, 1, 5, charger1);
+        CAN0.sendMsgBuf(chargerID, 1, 5, charger2);
         Serial.print("CHARGER & ");
     }
     else if (BMSQueryCounter == 1)
     {
         // BMS2
-        CAN1.sendMsgBuf(id + 10, ext, len, buf);
-        CAN1.sendMsgBuf(id + 11, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 12, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 13, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 14, ext, 8, tresponse);
+        CAN0.sendMsgBuf(id + 10, ext, len, buf);
+        CAN0.sendMsgBuf(id + 11, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 12, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 13, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 14, ext, 8, tresponse);
     }
     else if (BMSQueryCounter == 2)
     {
         // BMS3
-        CAN1.sendMsgBuf(id + 20, ext, len, buf);
-        CAN1.sendMsgBuf(id + 21, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 22, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 23, ext, 8, vresponse);
-        CAN1.sendMsgBuf(id + 24, ext, 8, tresponse);
+        CAN0.sendMsgBuf(id + 20, ext, len, buf);
+        CAN0.sendMsgBuf(id + 21, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 22, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 23, ext, 8, vresponse);
+        CAN0.sendMsgBuf(id + 24, ext, 8, tresponse);
     }
 
     BMSQueryCounter++;
@@ -220,12 +221,43 @@ void simBus0Data()
 
     Serial.print("BMS ");
     Serial.print(BMSQueryCounter);
-    Serial.println(" Simulated");
+    Serial.println(" Simulated & bus 0");
 }
 
 
 void simBus1Data()
 {
+    INT32U id      = 0x101;
+    INT8U  len     = 8;
+    INT8U  buf1[8] = { 0xDB, 0xFF, 0x21, 0xFF, 0xFE, 0x00, 0x1E, 0x01 };
+
+    CAN1.sendMsgBuf(id, 1, len, buf1);
+
+    id  = 0x102;
+    len = 8;
+    INT8U buf2[8] = { 0x77, 0x06, 0x42, 0x00, 0x00, 0x09, 0x73, 0x06 };
+
+    CAN1.sendMsgBuf(id, 1, len, buf2);
+
+    id  = 0x103;
+    len = 6;
+    INT8U buf3[8] = { 0xD8, 0x02, 0x16, 0x00, 0x16, 0x00 };
+
+    CAN1.sendMsgBuf(id, 1, len, buf3);
+
+    id  = 0x104;
+    len = 1;
+    INT8U buf4[1] = { 0x15 };
+
+    CAN1.sendMsgBuf(id, 1, len, buf4);
+
+    id  = 0x105;
+    len = 8;
+    INT8U buf5[8] = { 0xB0, 0x09, 0x00, 0x00, 0x94, 0x06, 0x00, 0x00 };
+
+    CAN1.sendMsgBuf(id, 1, len, buf5);
+
+    Serial.println("Simulated bus 1");
 }
 
 
