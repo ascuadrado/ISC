@@ -1,0 +1,67 @@
+SETUP RPI:
+
+1. change region to spain (keyboard)
+2. change password (user: pi, passwd: betoberry)
+3. Select wifi (ssid: MOVISTAR_52B8(2), passwd: WQ8hFl99w5VW3djsRVYb)
+4. change hostname to: betoberry (to find raspberry at betoberry.local)
+5. Activate ssh and vnc (for remote access)
+
+
+setup keyboard:
+	echo XKBLAYOUT="es" | sudo tee -a /etc/default/keyboard
+	sudo reboot
+
+Install can-utils
+	sudo apt-get install can-utils
+Install python-can
+	pip3 install python-can
+Install sqlite3
+	sudo apt-get install sqlite3
+Install java (for processing)
+	sudo apt install openjdk-8-jdk
+Avoid screen sleep
+	Add on: /etc/xdg/lxsession/LXDE-pi/autostart
+		@xset s off
+		@xset -dpms
+
+Setup of HDMI Screen
+	Add to /boot/config.txt:
+		# HDMI Screen
+		hdmi_group=2
+		hdmi_mode=87
+		hdmi_cvt=800 480 60 6 0 0 0
+		hdmi_drive=1
+
+max_usb_current=1
+
+setup CAN:
+	Add to /boot/config.txt:
+		dtparam=spi=on
+		dtoverlay=mcp2515-can0,oscillator=8000000,interrupt=25
+		dtoverlay=mcp2515-can1,oscillator=8000000,interrupt=24
+	or execute:
+		echo dtparam=spi=on | sudo tee -a /boot/config.txt
+		echo dtoverlay=mcp2515-can0,oscillator=8000000,interrupt=25 | sudo tee -a /boot/config.txt
+		echo dtoverlay=mcp2515-can1,oscillator=8000000,interrupt=24 | sudo tee -a /boot/config.txt
+Start CAN
+	manual:
+		sudo ip link set can0 up type can bitrate 250000
+		sudo ip link set can1 up type can bitrate 500000
+
+Send files over ssh
+	scp -r /Users/ascuadrado/Dropbox/ICAI/ISC/ISC/Processing/sketch_0_test pi@betoberry.local:Desktop
+	scp -r /Users/ascuadrado/Dropbox/ICAI/ISC/ISC/Rasp-main pi@betoberry.local:Desktop
+Receive files over ssh
+	scp -r pi@betoberry.local:Desktop /Users/ascuadrado/Desktop
+Remove rpi files
+	rm -r Desktop/sketch_0_test
+	rm -r Desktop/Rasp-main
+Execute python main
+	python3 Desktop/Rasp-main/main.py
+Execute processing
+	export DISPLAY=:0.0
+	Desktop/sketch_0_test/application.linux32/sketch_0_test
+
+Automatic run on reboot
+	crontab -e -> Add to file:
+		@reboot python3 /home/pi/Desktop/Rasp-main/main.py > /home/pi/Desktop/Rasp-main/log.txt

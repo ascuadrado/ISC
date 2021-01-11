@@ -96,3 +96,51 @@ def save_to_db(general, charger, sevcon, bms1, bms2, bms3):
 if __name__ == '__main__':
     init_dict()
     save_to_db(general, charger, sevcon, bms1, bms2, bms3)
+
+
+
+def init_dict(self, d):
+    '''
+    Initializes internal dictionaries (general, sevcon, charger,  bms1, bms2, bms3)
+
+    Args:
+        d: value to default all dictionaries
+
+    '''
+    self.bms1['voltages'] = [d,d,d,d,d,d,d,d,d,d,d,d]
+    self.bms2['voltages'] = [d,d,d,d,d,d,d,d,d,d,d,d]
+    self.bms3['voltages'] = [d,d,d,d,d,d,d,d,d,d,d,d]
+
+    self.bms1['temperatures'] = [d,d]
+    self.bms2['temperatures'] = [d,d]
+    self.bms3['temperatures'] = [d,d]
+
+    self.charger['voltage'] = d
+    self.charger['current'] = d
+    self.charger['flags'] = [d,d,d,d,d]
+
+    self.sevcon['target_id'] = d
+    self.sevcon['id'] = d
+    self.sevcon['target_iq'] = d
+    self.sevcon['iq'] = d
+
+    self.sevcon['battery_voltage'] = d
+    self.sevcon['battery_current'] = d
+    self.sevcon['line_contactor'] = d
+    self.sevcon['capacitor_voltage'] = d
+
+    self.sevcon['throttle_value'] = d
+    self.sevcon['target_torque'] = d
+    self.sevcon['torque'] = d
+
+    self.sevcon['heatsink_temp'] = d
+
+    self.sevcon['maximum_motor_speed'] = d
+    self.sevcon['velocity'] = d
+
+    self.general['allOK'] = d
+    self.general['sevconConnected'] = d
+    self.general['chargerConnected'] = d
+    self.general['bms1Connected'] = d
+    self.general['bms2Connected'] = d
+    self.general['bms3Connected'] = d

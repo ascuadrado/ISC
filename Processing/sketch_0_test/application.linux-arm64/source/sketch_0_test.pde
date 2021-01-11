@@ -3,36 +3,33 @@ import processing.net.*;
 Client c; 
 JSONObject json;
 
-float maxVoltage = 135.0;
-float minVoltage = 80.0;
-
 PFont digital;
 PFont roboto;
 
-Data        data    = new Data();
-FullDisplay display = new FullDisplay();
-
-void printTime()
-{
-    print(hour());
-    print(":");
-    print(minute());
-    print(":");
-    println(second());
-}
-
+Data        data;
+FullDisplay display;
 
 void setup()
 {
-    printTime();
-    digital = createFont("Digital.ttf", 150);
-    roboto  = createFont("Roboto-Regular.ttf", 24);
-    c = new Client(this, "127.0.0.1", 50007);  // Connect to server on port 80
+    
+    try {
+      digital = createFont("Digital.ttf", 150);
+      roboto  = createFont("Roboto-Regular.ttf", 24);
+      c = new Client(this, "127.0.0.1", 50007);  // Connect to server on port 80
+    } catch (Exception e){
+      println(e);
+    }
+    
     json = new JSONObject();
+    data    = new Data();
+    display = new FullDisplay();
 
-    size(800, 480);
-    //noCursor();
-    //fullScreen();
+    //size(800, 480);
+    noCursor();
+    fullScreen();
+    
+    // Output more information
+    data.testing = false;
 
     println("Setup Done");
 }
@@ -44,17 +41,16 @@ void draw()
 
     data.update();
 
-
-    //display.drawBattery(1-1.0*mouseX/700);
-    display.drawBattery((data.totalVoltage - minVoltage) / (maxVoltage - minVoltage));
+    display.drawBattery(data.stateOfCharge);
     display.drawAlert(true);
     display.drawSpeed((int)data.speed);
-    display.drawPower(data.throttle);
-    display.drawBatteryV(data.totalVoltage);
-    //println(frameRate);
-
-    //rect(0,0, totalV, totalV);
-
-    //text("Total Voltage detected: ", 10,20);
-    //text(1.0/1000, 10, 40);
+    display.drawPower(data.torque, data.throttle);
+    display.drawBatteryV(data.vTotal);
+    display.drawOpMode(data.opMode);
+    if(data.testing){
+      display.drawTestingData();
+    }
+    
+    //display.drawBattery(1-1.0*mouseX/700);
+    println(frameRate);
 }

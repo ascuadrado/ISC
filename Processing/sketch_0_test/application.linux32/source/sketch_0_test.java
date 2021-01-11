@@ -21,36 +21,33 @@ public class sketch_0_test extends PApplet {
 Client c; 
 JSONObject json;
 
-float maxVoltage = 135.0f;
-float minVoltage = 80.0f;
-
 PFont digital;
 PFont roboto;
 
-Data        data    = new Data();
-FullDisplay display = new FullDisplay();
-
-public void printTime()
-{
-    print(hour());
-    print(":");
-    print(minute());
-    print(":");
-    println(second());
-}
-
+Data        data;
+FullDisplay display;
 
 public void setup()
 {
-    printTime();
-    digital = createFont("Digital.ttf", 150);
-    roboto  = createFont("Roboto-Regular.ttf", 24);
-    c = new Client(this, "127.0.0.1", 50007);  // Connect to server on port 80
-    json = new JSONObject();
-
     
-    //noCursor();
-    //fullScreen();
+    try {
+      digital = createFont("Digital.ttf", 150);
+      roboto  = createFont("Roboto-Regular.ttf", 24);
+      c = new Client(this, "127.0.0.1", 50007);  // Connect to server on port 80
+    } catch (Exception e){
+      println(e);
+    }
+    
+    json = new JSONObject();
+    data    = new Data();
+    display = new FullDisplay();
+
+    //size(800, 480);
+    noCursor();
+    
+    
+    // Output more information
+    data.testing = false;
 
     println("Setup Done");
 }
@@ -62,84 +59,72 @@ public void draw()
 
     data.update();
 
-
-    //display.drawBattery(1-1.0*mouseX/700);
-    display.drawBattery((data.totalVoltage - minVoltage) / (maxVoltage - minVoltage));
+    display.drawBattery(data.stateOfCharge);
     display.drawAlert(true);
     display.drawSpeed((int)data.speed);
-    display.drawPower(data.throttle);
-    display.drawBatteryV(data.totalVoltage);
-    //println(frameRate);
-
-    //rect(0,0, totalV, totalV);
-
-    //text("Total Voltage detected: ", 10,20);
-    //text(1.0/1000, 10, 40);
+    display.drawPower(data.torque, data.throttle);
+    display.drawBatteryV(data.vTotal);
+    display.drawOpMode(data.opMode);
+    if(data.testing){
+      display.drawTestingData();
+    }
+    
+    //display.drawBattery(1-1.0*mouseX/700);
+    println(frameRate);
 }
 class Data {
-    float totalVoltage = 0;
-    float current      = 0;
-    float speed        = 119;
-    float throttle     = 0;
+    boolean testing = false;
+    
+    // Important data
+    float vTotal = 119;
+    float speed        = 225;
+    float torque = 0.5f;
+    float throttle     = 0.2f;
+    float stateOfCharge = 0.45f;
+    String opMode = "Testing";
+    
+    // Testing data
+    float maxCellV = 3.251f;
+    float minCellV = 3.345f;
+    float maxTemp = 21;
+    float capacitorV = 85;
+    float velocity = 3150;
+    float current = 0;
 
     public void update()
-    {
-      print("data request - ");
-        totalVoltage = 129;
+    {        
         c.write("request Data\n");
+        
         while(c.available()==0){
           delay(1);
-          print(1);
         }
+        
         String data = c.readString();
         data = data.substring(0, data.indexOf("\n"));
         print(data);
+        
         try{
           json = parseJSONObject(data);
-          totalVoltage = json.getFloat("vtotal");
+          
+          // Important data
+          vTotal = json.getFloat("vTotal");
           speed = json.getFloat("speed");
-          throttle = json.getFloat("power");
-          print(throttle);
+          torque = json.getFloat("torque");
+          throttle = json.getFloat("throttle");
+          stateOfCharge = json.getFloat("stateOfCharge");
+          opMode = json.getString("opMode");
+          
+          // Testing data
+          maxCellV = json.getFloat("maxCellV");
+          minCellV = json.getFloat("minCellV");
+          maxTemp = json.getFloat("maxTemp");
+          capacitorV = json.getFloat("capacitorV");
+          velocity = json.getFloat("velocity");
+          current = json.getFloat("current");
+          
         } catch (Exception e){
           println(e);
         }
-        println();
-    }
-
-    public void display()
-    {
-        int   margen     = 20;
-        float batW       = 50;
-        float batPercent = (totalVoltage - minVoltage) / (maxVoltage - minVoltage);
-        float speedW     = 1.0f * 25 / 100; // %
-
-        // Battery
-        fill(0, 255, 71);
-        noStroke();
-        rect(margen, height - margen, batW, -(height - 2 * margen) * batPercent, 0, 0, batW / 2, batW / 2);
-
-        stroke(255);
-        strokeWeight(4);
-        noFill();
-        rect(margen, margen, batW, height - 2 * margen, batW / 2);
-
-
-        // Text
-        fill(255);
-        textSize(16);
-        textAlign(CENTER);
-        text(String.format("%.2f", batPercent * 100) + "%", margen + batW / 2, margen + 20);
-
-        // Speedometer
-        noFill();
-        stroke(255);
-        strokeWeight(4);
-        //float d = 2*(width-4*margen-batW*width);
-        float d = (height - 2 * margen);
-        arc(width - margen, height - margen, 2 * d, 2 * d, PI, PI + HALF_PI);
-        arc(width - margen, height - margen, 2 * (d - height * speedW), 2 * (d - height * speedW), PI, PI + HALF_PI);
-        line(width - margen, margen, width - margen, margen + speedW * height);
-        line(width - margen - d, height - margen, width - margen - d + speedW * height, height - margen);
     }
 }
 class FullDisplay {
@@ -204,7 +189,7 @@ class FullDisplay {
     text("KM/H", 520, 333, 200, 100);
   }
 
-  public void drawPower(float power){
+  public void drawPower(float torque, float throttle){
     int h = 250;
     int powerW = 50;
 
@@ -214,16 +199,21 @@ class FullDisplay {
     textAlign(CENTER, CENTER);
     text("POWER", 670, 130, 130, 60);
 
-    // Power meter
+    // Torque meter
     fill(0,255,240);
     noStroke();
     rect(710, 190+h, powerW, -h, powerW/2);
     fill(0);
-    rect(710, 190, powerW, h*(1-power));
+    rect(710, 190, powerW, h*(1-torque));
     stroke(255);
     strokeWeight(4);
     noFill();
     rect(710, 190, powerW, h, powerW/2);
+    
+    // Throttle indicator
+    stroke(255);
+    strokeWeight(2);
+    line(710+powerW/2-40, 190+h*(1-throttle), 710+powerW/2+40, 190+h*(1-throttle));
   }
 
   public void drawBatteryV(float voltage){
@@ -234,13 +224,40 @@ class FullDisplay {
     text(String.format("%.1f",voltage)+"V", 320, 20, 250, 80);
     textSize(22);
     fill(255);
-    text("MAX: 120V", 590, 20, 200, 40);
-    text("MIN:  80V", 590, 60, 200, 40);
+    text(String.format("MAX: %.0fV", maxVoltage), 590, 20, 200, 40);
+    text(String.format("MIN: %.0fV", minVoltage), 590, 60, 200, 40);
+  }
+  
+  
+  public void drawOpMode(String mode){
+    textFont(digital);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(50);
+    text(mode, 149, 141, 323, 96);
+    textSize(40);
+  }
+  
+  public void drawTestingData(){
+    textFont(roboto);
+    fill(255);
+    textAlign(LEFT, TOP);
+    textSize(18);
+    String fullText = "";
+    fullText += "Testing data:\n\n";
+    fullText += "maxCellV: " + String.format("%.3f", data.maxCellV)+" v\n";
+    fullText += "minCellV: " + String.format("%.3f", data.minCellV)+" v\n";
+    fullText += "maxTemp: " + String.format("%.3f", data.maxTemp)+" ºC\n";
+    fullText += "capacitorV: " + String.format("%.1f", data.capacitorV)+" v\n";
+    fullText += "velocity: " + String.format("%.0f", data.velocity)+" rpm\n";
+    text(fullText, 507, 124, 184, 224);
   }
 
-
 }
-  public void settings() {  size(800, 480); }
+static float maxVoltage = 135.0f;
+static float minVoltage = 80.0f;
+static int margen = 15;
+  public void settings() {  fullScreen(); }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "sketch_0_test" };
     if (passedArgs != null) {
