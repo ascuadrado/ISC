@@ -9,6 +9,8 @@
 #define CAN1IntPin          3
 #define CAN1CS              48
 
+#define shutdownPIN         4
+
 // Setup parameters
 #define BMS0ID              0x12C
 #define chargerIDSend       0x1806E7F4
@@ -17,6 +19,10 @@
 #define maxChargeCurrent    10  // 1 amp
 #define maxChargeVoltage    105 // 120 volts
 #define chargeIfPossible    1   // 0 = don't charge
+#define defaultINT          -41 // Default value for debugging system connections (should be <0)
+#define maxAllowedCellV     4205
+#define minAllowedCellV     2795
+#define maxAllowedCellT     40
 
 // CANMsg structure for buffer in main program
 struct CANMsg
@@ -30,42 +36,42 @@ struct CANMsg
 // Data structures (see datos.json to understand how they are organized)
 struct BMSData
 {
+    int connected;
     int cellVoltagemV[12];
     int temperatures[2];
 };
 
 struct SEVCONData
 {
+    int   connected;
     // TPDO 1
-    int  TPDO1_1;
-    int  TPDO1_2;
-    int  TPDO1_3;
-    int  TPDO1_4;
+    float target_id;
+    float id;
+    float target_iq;
+    float iq;
 
     // TPDO 2
-    int  TPDO2_1;
-    int  TPDO2_2;
-    int  TPDO2_3;
+    float battery_voltage;
+    float battery_current;
+    float line_contactor;
+    float capacitor_voltage;
 
     // TPDO 3
-    int  TPDO3_1;
-    int  TPDO3_2;
-    int  TPDO3_3;
-    int  TPDO3_4;
+    float throttle_value;
+    float target_torque;
+    float torque;
 
     // TPDO 4
-    int  TPDO4_1;
-    int  TPDO4_2;
-    int  TPDO4_3;
-    int  TPDO4_4;
+    float heatsink_temp;
 
     // TPDO 5
-    long TPDO5_1;
-    long TPDO5_2;
+    float maximum_motor_speed;
+    float velocity;
 };
 
 struct CHARGERData
 {
+    int connected;
     int Vtotal;
     int Icharge;
     int flags[5];
@@ -90,7 +96,7 @@ void writeData(struct Data data)
     sprintf(buffer, "{\n");
     Serial.print(buffer);
     sprintf(buffer, "\"data\": {\n");
-//    sprintf(buffer, "\"timeStamp\": %ld,\n", timestamp);
+    //    sprintf(buffer, "\"timeStamp\": %ld,\n", timestamp);
     sprintf(buffer, "\"allOK\": %d,\n", data.allOK);
     Serial.print(buffer);
     sprintf(buffer, "\"BMS\": [{\n");
@@ -115,7 +121,7 @@ void writeData(struct Data data)
     Serial.print(buffer);
     sprintf(buffer, "\"SEVCON\": {\n");
     Serial.print(buffer);
-    sprintf(buffer, "\"TPDO1_1\": %d\n", data.SEVCON.TPDO1_1);
+    //sprintf(buffer, "\"line_contactor\": %.1f\n", data.SEVCON.line_contactor);
     Serial.print(buffer);
     sprintf(buffer, "\n");
     Serial.print(buffer);
@@ -137,4 +143,7 @@ void writeData(struct Data data)
     Serial.print(buffer);
     sprintf(buffer, "\n");
     Serial.print(buffer);
+
+    sprintf(buffer, "CONNECTIONS - BMS: %d %d %d, SEVCON: %d, CHARGER: %d", data.BMS[0].connected, data.BMS[1].connected, data.BMS[2].connected, data.SEVCON.connected, data.CHARGER.connected);
+    Serial.println(buffer);
 }

@@ -190,11 +190,11 @@ class ISCData:
 
                 self.charger['voltage'] = ((msg[0]<<8) + msg[1])/10
                 self.charger['current'] = ((msg[2]<<8) + msg[3])/10
-                self.charger['flags'][0] = msg[4]>>7 & 0x01
-                self.charger['flags'][1] = msg[4]>>6 & 0x01
-                self.charger['flags'][2] = msg[4]>>5 & 0x01
-                self.charger['flags'][3] = msg[4]>>4 & 0x01
-                self.charger['flags'][4] = msg[4]>>3 & 0x01
+                self.charger['flags'][0] = (msg[4]>>7) & 0x01
+                self.charger['flags'][1] = (msg[4]>>6) & 0x01
+                self.charger['flags'][2] = (msg[4]>>5) & 0x01
+                self.charger['flags'][3] = (msg[4]>>4) & 0x01
+                self.charger['flags'][4] = (msg[4]>>3) & 0x01
 
         elif bus == 1: # CAN1 bus (SEVCON)
             self.general['sevconConnected'] = 1
