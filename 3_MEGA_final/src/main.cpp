@@ -13,9 +13,11 @@ MCP_CAN CAN1(CAN1CS);
 int startMillis0    = 0;
 int startMillis1    = 0;
 int startMillis2    = 0;
-int period0         = 300;
-int period1         = 1000;
-int period2         = 3000;
+int startMillis3    = 0;
+int period0         = 30;   // Query BMS (one at a time)
+int period1         = 1000; // Query charger
+int period2         = 100;  // Update finite state machine and act on pins
+int period3         = 1000; // Update finite state machine
 int BMSQueryCounter = 0;
 
 // Functions
@@ -25,33 +27,26 @@ void loop();
 void timer0(); // Query BMS (one at a time)
 void timer1(); // Query charger
 void timer2(); // Check data and debug
+void timer3(); // Update finite state machine
 
 void CAN0Interrupt();
 void CAN1Interrupt();
 
 void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN);
 int init_data();
-int connectedFlags_to_default();
-int checkData();
+void reset_connected_flags();
 
 // Data structures
 struct Data data;
+
+// Estados posibles
+Estado estado = standBy;
 
 // CAN MSG Buffer (circular buffer -> if full, overwrites messages)
 #define N    20
 int           tailCounter = 0;
 int           headCounter = 0;
 struct CANMsg MSGBuffer[N];
-
-// Estados posibles
-enum Estado
-{
-    standBy,
-    run,
-    charge,
-    error
-};
-Estado estado = standBy;
 
 /*
  * Setup function
@@ -64,7 +59,8 @@ void setup()
 
     attachInterrupt(digitalPinToInterrupt(CAN0IntPin), CAN0Interrupt, LOW);
     attachInterrupt(digitalPinToInterrupt(CAN1IntPin), CAN1Interrupt, LOW);
-    pinMode(shutdownPIN, OUTPUT);
+    pinMode(ARD1, OUTPUT);
+    pinMode(ARD2, OUTPUT);
 
     while (CAN0.begin(MCP_ANY, CAN0Speed, MCP_8MHZ))
     {
@@ -116,6 +112,12 @@ void loop()
         startMillis2 = currentMillis;
     }
 
+    if (currentMillis - startMillis3 >= period3)   // Timer3
+    {
+        timer3();
+        startMillis3 = currentMillis;
+    }
+
     if (headCounter != tailCounter) // Process new msg in queue
     {
         parseMessage(MSGBuffer[tailCounter].id, MSGBuffer[tailCounter].len,
@@ -157,28 +159,34 @@ void timer1() // Query charger (every 1s)
     long id     = chargerIDSend;
     int  v      = (maxChargeVoltage * 10);
     int  i      = (maxChargeCurrent * 10);
-    int  charge = 0;
+    int  charge = data.tryToCharge;
 
     if (estado == charge)
     {
         charge = 1;
     }
 
-    uint8_t messageCharger[5] = { (v >> 8) & 0xFF,
-                                  v & 0xFF,
-                                  (i >> 8) & 0xFF,
-                                  i & 0xFF,
-                                  (1 - charge) };
+    uint8_t messageCharger[5] = { (uint8_t)((v >> 8) & 0xFF),
+                                  (uint8_t)(v & 0xFF),
+                                  (uint8_t)((i >> 8) & 0xFF),
+                                  (uint8_t)(i & 0xFF),
+                                  (uint8_t)(1 - charge) };
 
     CAN0.sendMsgBuf(id, 1, 5, messageCharger);
 }
 
 
-void timer2() // Check data and output to serial
+void timer2() // Check BMS data and update states
 {
-    writeData(data);
-    Serial.print("Check data: ");
-    Serial.println(checkData());
+    data.batteryOK = checkBMSData(data);
+    estado         = updateState(data, estado);
+}
+
+
+void timer3() // Debug & reset flags to detect missing systems
+{
+    debugInfo(data, estado);
+    reset_connected_flags();
 }
 
 
@@ -322,9 +330,12 @@ void parseMessage(INT32U id, INT8U len, INT8U *buf, INT8U busN)
 
 int init_data()
 {
-    int d = defaultINT;
+    int d = 0;
 
-    data.allOK = d;
+    data.batteryOK   = d;
+    data.runButton   = d;
+    data.tryToCharge = d;
+
     for (int i = 0; i < 3; i++)
     {
         for (int j = 0; j < 12; j++)
@@ -360,131 +371,23 @@ int init_data()
     data.SEVCON.maximum_motor_speed = d;
     data.SEVCON.velocity            = d;
 
-    connectedFlags_to_default();
+    for (int i = 0; i < 3; i++)
+    {
+        data.BMS[i].connected = d;
+    }
+    data.CHARGER.connected = d;
+    data.SEVCON.connected  = d;
 
     return 1;
 }
 
 
-int connectedFlags_to_default()
+void reset_connected_flags()
 {
-    data.allOK = 0;
     for (int i = 0; i < 3; i++)
     {
         data.BMS[i].connected = 0;
     }
     data.CHARGER.connected = 0;
     data.SEVCON.connected  = 0;
-    return 1;
-}
-
-
-int checkData()
-{
-    // allOK = 0 means something is wrong
-    int allOK = 1;
-
-    int  minV = data.BMS[0].cellVoltagemV[0];
-    int  maxV = minV;
-    int  minT = data.BMS[0].temperatures[0];
-    int  maxT = minT;
-    long sumV = 0;
-
-    // Check if are BMS connected & calculate maxV, minV, maxT, minT, sumV
-    for (int i = 0; i < 3; i++)
-    {
-        for (int j = 0; j < 12; j++)
-        {
-            int v = data.BMS[i].cellVoltagemV[j];
-            if (((i == 1) && (j >= 8)) || ((i == 2) && (j >= 10)))
-            {
-                // We don't care about these values because they are not connected
-                continue;
-            }
-            sumV += v;
-            if (v < minV)
-            {
-                minV = v;
-            }
-            else if (v > maxV)
-            {
-                maxV = v;
-            }
-        }
-        for (int j = 0; j < 2; j++)
-        {
-            int t = data.BMS[i].temperatures[j];
-            if (t < minT)
-            {
-                minT = t;
-            }
-            else if (t > maxT)
-            {
-                maxT = t;
-            }
-        }
-    }
-
-    // Check if anything is out of limits
-    if ((minV < minAllowedCellV) || (maxV > maxAllowedCellV) || (maxT > maxAllowedCellT))
-    {
-        allOK = 0;
-    }
-
-    // Check if charger connected
-    if (data.CHARGER.connected)
-    {
-        if (estado == standBy)
-        {
-            estado = charge;
-        }
-    }
-    else if (estado == charge)
-    {
-        estado = error;
-        // Charger not connected
-    }
-
-    // Check if sevcon connected
-    if (data.SEVCON.connected)
-    {
-        if (data.SEVCON.line_contactor < 1000)
-        {
-            allOK = 0;
-        }
-    }
-    else
-    {
-        allOK = 0;
-    }
-
-
-    // Print summary stats
-    char buffer[64];
-
-    sprintf(buffer, "MaxV: %d, MinV: %d, TotalV: %ld, maxT: %d \n", maxV, minV, sumV, maxT);
-    Serial.print(buffer);
-    Serial.println("-----------------------------");
-
-    if (allOK)
-    {
-        // All good
-        digitalWrite(shutdownPIN, HIGH);
-        Serial.println("-----------------------------");
-        Serial.println("ALL GOOD");
-        Serial.println("-----------------------------");
-    }
-    else
-    {
-        // Something is wrong
-        estado = error;
-        digitalWrite(shutdownPIN, LOW);
-        Serial.println("-----------------------------");
-        Serial.println("SOMETHING's WRONG!!!");
-        Serial.println("-----------------------------");
-    }
-
-    connectedFlags_to_default();
-    data.allOK = allOK;
-    return allOK;
 }

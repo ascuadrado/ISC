@@ -19,10 +19,9 @@ class Data {
 
     void update()
     {        
-        c.write("request Data\n");
+        c.write("Request\n");
         
         while(c.available()==0){
-          delay(1);
         }
         
         String data = c.readString();
