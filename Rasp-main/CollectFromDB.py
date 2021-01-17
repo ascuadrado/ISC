@@ -198,7 +198,7 @@ if __name__ == '__main__':
     configure_data()
     read_from_database()
     # clean_database()
-    data['_id'] = 'Prueba_BaseDatos '
+    data['_id'] = 'Prueba_BaseDatos'
     dataJSON = json.dumps(data)
     print(dataJSON)
 
