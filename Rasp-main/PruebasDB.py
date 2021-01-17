@@ -1,9 +1,10 @@
 import sqlite3
 import time
 import random
+from tqdm import tqdm
 
 # Setup
-dbFile = 'Database.db'
+dbFile = 'ISC/Rasp-main/Database.db'
 DBDelay = 2 # seconds
 
 # Data
@@ -26,13 +27,15 @@ def init_dict():
     '''
 
     d = -1
-    bms1['voltages'] = [d, d, d, d, d, d, d, d, d, d, d, d]
-    bms2['voltages'] = [d, d, d, d, d, d, d, d, d, d, d, d]
-    bms3['voltages'] = [d, d, d, d, d, d, d, d, d, d, d, d]
+    v = 4.2
+    t = 30
+    bms1['voltages'] = [v, v, v, v, v, v, v, v, v, v, v, v]
+    bms2['voltages'] = [v, v, v, v, v, v, v, v, v, v, v, v]
+    bms3['voltages'] = [v, v, v, v, v, v, v, v, v, v, v, v]
 
-    bms1['temperatures'] = [d, d]
-    bms2['temperatures'] = [d, d]
-    bms3['temperatures'] = [d, d]
+    bms1['temperatures'] = [t, t]
+    bms2['temperatures'] = [t, t]
+    bms3['temperatures'] = [t, t]
 
     charger['voltage'] = d
     charger['current'] = d
@@ -66,36 +69,44 @@ def init_dict():
     general['bms2Connected'] = 0
     general['bms3Connected'] = 0
 
+
 def generate_random_values():
 
-    res = [random.randrange(-0.7, 0.7, 0.01) for i in range(12)]
-    new_list = [x + 3.5 for x in res]
+    arr = bms1['voltages']
+    res = [0.0001 * random.randrange(0, 100, 1) for i in range(12)]
+    new_list = [x1 - x2 for (x1, x2) in zip(arr, res)]
     bms1['voltages'] = new_list
 
-    res = [random.randrange(-0.7, 0.7, 0.01) for i in range(12)]
-    new_list = [x + 3.5 for x in res]
+    arr = bms2['voltages']
+    res = [0.0001 * random.randrange(0, 100, 1) for i in range(12)]
+    new_list = [x1 - x2 for (x1, x2) in zip(arr, res)]
     bms2['voltages'] = new_list
 
-    res = [random.randrange(-0.7, 0.7, 0.01) for i in range(12)]
-    new_list = [x + 3.5 for x in res]
+    arr = bms3['voltages']
+    res = [0.0001 * random.randrange(0, 100, 1) for i in range(12)]
+    new_list = [x1 - x2 for (x1, x2) in zip(arr, res)]
     bms3['voltages'] = new_list
 
-    res = [random.randrange(-15, 60, 2) for i in range(2)]
-    new_list = [x + 30 for x in res]
+    arr = bms1['temperatures']
+    res = [0.01 * random.randrange(-50, 100, 1) for i in range(2)]
+    new_list = [x1 + x2 for (x1, x2) in zip(arr, res)]
     bms1['temperatures'] = new_list
 
-    res = [random.randrange(-15, 60, 2) for i in range(2)]
-    new_list = [x + 30 for x in res]
+    arr = bms2['temperatures']
+    res = [0.01 * random.randrange(-50, 100, 1) for i in range(2)]
+    new_list = [x1 + x2 for (x1, x2) in zip(arr, res)]
     bms2['temperatures'] = new_list
 
-    res = [random.randrange(-15, 60, 2) for i in range(2)]
-    new_list = [x + 30 for x in res]
+    arr = bms3['temperatures']
+    res = [0.01 * random.randrange(-50, 100, 1) for i in range(2)]
+    new_list = [x1 + x2 for (x1, x2) in zip(arr, res)]
     bms3['temperatures'] = new_list
 
     sevcon['throttle_value'] = random.randrange(-6, 6, 1)
     sevcon['velocity'] = random.randrange(20, 160, 1)
 
-def save_to_db(dataBaseName="Database.db"):
+
+def save_to_db(dataBaseName='ISC/Rasp-main/Database.db'):
     '''
     Saves the data collected to database
 
@@ -176,7 +187,7 @@ def save_to_db(dataBaseName="Database.db"):
 
 if __name__ == '__main__':
     init_dict()
-    for i in range(300):
+    for i in tqdm(range(300)):
         time.sleep(1)
         generate_random_values()
         save_to_db()
