@@ -1,21 +1,45 @@
 {
-    "timestamp": 1608181523,
-    "allOK": 0,
+    "batteryOK": 0,
+    "runButton": 0,
+    "tryToCharge": 1,
     "BMS": [{
+        "connected": 0,
         "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         "temperatures": [0, 0]
     }, {
+        "connected": 0,
         "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         "temperatures": [0, 0]
     }, {
+        "connected": 0,
         "cellVoltagemV": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         "temperatures": [0, 0]
     }],
     "SEVCON": {
-        "TPDO1_1": 1
+        "connected": 0,
+
+        "target_id": 0,
+        "id": 0,
+        "target_iq": 0,
+        "iq": 0,
+
+        "battery_voltage": 0,
+        "battery_current": 0,
+        "line_contactor": 0,
+        "capacitor_voltage": 0,
+
+        "throttle_value": 0,
+        "target_torque": 0,
+        "torque": 0,
+
+        "heatsink_temp": 0,
+
+        "maximum_motor_speed": 0,
+        "velocity": 0,
 
     },
     "CHARGER": {
+        "connected": 0,
         "Vtotal": 0,
         "Icharge": 0,
         "flags": [0, 0, 0, 0, 0]

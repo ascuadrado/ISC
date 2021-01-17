@@ -24,13 +24,13 @@ void setup()
     data    = new Data();
     display = new FullDisplay();
 
-    //size(800, 480);
-    noCursor();
-    fullScreen();
+    size(800, 480);
+    //noCursor();
+    //fullScreen();
     
     // Output more information
     data.testing = true;
-
+    frameRate(15);
     println("Setup Done");
 }
 
@@ -52,5 +52,6 @@ void draw()
     }
     
     //display.drawBattery(1-1.0*mouseX/700);
+    //display.drawPower(1-1.0*mouseY/700, 1);
     println(frameRate);
 }
