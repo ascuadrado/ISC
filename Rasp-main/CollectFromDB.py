@@ -194,6 +194,7 @@ def read_from_database():
     conn.commit()
     conn.close()
 
+
 if __name__ == '__main__':
     configure_data()
     read_from_database()
