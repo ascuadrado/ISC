@@ -1,5 +1,7 @@
 import sqlite3
 import json
+from sockets.python3.client import Client
+import requests
 
 # File names
 dbFile = 'ISC/Rasp-main/Database.db'
@@ -9,14 +11,16 @@ data = dict()
 def configure_data():
     # Configure general dictionary
     data['general'] = dict()
-    data['general']['timestamp'] = []
+    data['general']['time_stamp'] = []
+    data['general']['nombre'] = []
     data['general']['date'] = []
     data['general']['time'] = []
     data['general']['allOK'] = []
 
     # Configure the charger dictionary
     data['charger'] = dict()
-    data['charger']['timestamp'] = []
+    data['charger']['time_stamp'] = []
+    data['charger']['nombre'] = []
     data['charger']['date'] = []
     data['charger']['time'] = []
     data['charger']['voltage'] = []
@@ -29,14 +33,16 @@ def configure_data():
 
     # Configure Sevcon Dictionary
     data['sevcon'] = dict()
-    data['sevcon']['timestamp'] = []
+    data['sevcon']['time_stamp'] = []
+    data['sevcon']['nombre'] = []
     data['sevcon']['date'] = []
     data['sevcon']['time'] = []
     data['sevcon']['TPD01_1'] = []
 
     # Configure bms1 Dictionary
     data['bms1'] = dict()
-    data['bms1']['timestamp'] = []
+    data['bms1']['time_stamp'] = []
+    data['bms1']['nombre'] = []
     data['bms1']['date'] = []
     data['bms1']['time'] = []
     data['bms1']['voltage1'] = []
@@ -56,7 +62,8 @@ def configure_data():
 
     # Configure bms2 dictionary
     data['bms2'] = dict()
-    data['bms2']['timestamp'] = []
+    data['bms2']['time_stamp'] = []
+    data['bms2']['nombre'] = []
     data['bms2']['date'] = []
     data['bms2']['time'] = []
     data['bms2']['voltage1'] = []
@@ -76,7 +83,8 @@ def configure_data():
 
     # Configure bms3 dictionary
     data['bms3'] = dict()
-    data['bms3']['timestamp'] = []
+    data['bms3']['time_stamp'] = []
+    data['bms3']['nombre'] = []
     data['bms3']['date'] = []
     data['bms3']['time'] = []
     data['bms3']['voltage1'] = []
@@ -101,15 +109,16 @@ def read_from_database():
     c.execute("SELECT * FROM general")
     rows = c.fetchall()
     for row in rows:
-        data['general']['timestamp'].append(row[0])
+        data['general']['time_stamp'].append(row[0])
         data['general']['date'].append(row[1])
         data['general']['time'].append(row[2])
         data['general']['allOK'].append(row[3])
+        data['general']['nombre'].append('Prueba_' + row[1])
 
     c.execute("SELECT * FROM charger")
     rows = c.fetchall()
     for row in rows:
-        data['charger']['timestamp'].append(row[0])
+        data['charger']['time_stamp'].append(row[0])
         data['charger']['date'].append(row[1])
         data['charger']['time'].append(row[2])
         data['charger']['voltage'].append(row[3])
@@ -119,77 +128,82 @@ def read_from_database():
         data['charger']['flag2'].append(row[7])
         data['charger']['flag3'].append(row[8])
         data['charger']['flag4'].append(row[9])
+        data['charger']['nombre'].append('Prueba_' + row[1])
 
     c.execute("SELECT * FROM sevcon")
     rows = c.fetchall()
     for row in rows:
-        data['sevcon']['timestamp'].append(row[0])
+        data['sevcon']['time_stamp'].append(row[0])
         data['sevcon']['date'].append(row[1])
         data['sevcon']['time'].append(row[2])
         data['sevcon']['TPD01_1'].append(row[3])
+        data['sevcon']['nombre'].append('Prueba_' + row[1])
 
     c.execute("SELECT * FROM bms1")
     rows = c.fetchall()
     for row in rows:
-        data['bms1']['timestamp'].append(row[0])
+        data['bms1']['time_stamp'].append(row[0])
         data['bms1']['date'].append(row[1])
         data['bms1']['time'].append(row[2])
-        data['bms1']['voltage1'].append(row[3])
-        data['bms1']['voltage2'].append(row[4])
-        data['bms1']['voltage3'].append(row[5])
-        data['bms1']['voltage4'].append(row[6])
-        data['bms1']['voltage5'].append(row[7])
-        data['bms1']['voltage6'].append(row[8])
-        data['bms1']['voltage7'].append(row[9])
-        data['bms1']['voltage8'].append(row[10])
-        data['bms1']['voltage9'].append(row[11])
-        data['bms1']['voltage10'].append(row[12])
-        data['bms1']['voltage11'].append(row[13])
-        data['bms1']['voltage12'].append(row[14])
-        data['bms1']['temperature1'].append(row[15])
-        data['bms1']['temperature2'].append(row[16])
+        data['bms1']['voltage1'].append(round(row[3], 2))
+        data['bms1']['voltage2'].append(round(row[4], 2))
+        data['bms1']['voltage3'].append(round(row[5], 2))
+        data['bms1']['voltage4'].append(round(row[6], 2))
+        data['bms1']['voltage5'].append(round(row[7], 2))
+        data['bms1']['voltage6'].append(round(row[8], 2))
+        data['bms1']['voltage7'].append(round(row[9], 2))
+        data['bms1']['voltage8'].append(round(row[10], 2))
+        data['bms1']['voltage9'].append(round(row[11], 2))
+        data['bms1']['voltage10'].append(round(row[12], 2))
+        data['bms1']['voltage11'].append(round(row[13], 2))
+        data['bms1']['voltage12'].append(round(row[14], 2))
+        data['bms1']['temperature1'].append(round(row[15], 2))
+        data['bms1']['temperature2'].append(round(row[16], 2))
+        data['bms1']['nombre'].append('Prueba_' + row[1])
 
     c.execute("SELECT * FROM bms2")
     rows = c.fetchall()
     for row in rows:
-        data['bms2']['timestamp'].append(row[0])
+        data['bms2']['time_stamp'].append(row[0])
         data['bms2']['date'].append(row[1])
         data['bms2']['time'].append(row[2])
-        data['bms2']['voltage1'].append(row[3])
-        data['bms2']['voltage2'].append(row[4])
-        data['bms2']['voltage3'].append(row[5])
-        data['bms2']['voltage4'].append(row[6])
-        data['bms2']['voltage5'].append(row[7])
-        data['bms2']['voltage6'].append(row[8])
-        data['bms2']['voltage7'].append(row[9])
-        data['bms2']['voltage8'].append(row[10])
-        data['bms2']['voltage9'].append(row[11])
-        data['bms2']['voltage10'].append(row[12])
-        data['bms2']['voltage11'].append(row[13])
-        data['bms2']['voltage12'].append(row[14])
-        data['bms2']['temperature1'].append(row[15])
-        data['bms2']['temperature2'].append(row[16])
+        data['bms2']['voltage1'].append(round(row[3], 2))
+        data['bms2']['voltage2'].append(round(row[4], 2))
+        data['bms2']['voltage3'].append(round(row[5], 2))
+        data['bms2']['voltage4'].append(round(row[6], 2))
+        data['bms2']['voltage5'].append(round(row[7], 2))
+        data['bms2']['voltage6'].append(round(row[8], 2))
+        data['bms2']['voltage7'].append(round(row[9], 2))
+        data['bms2']['voltage8'].append(round(row[10], 2))
+        data['bms2']['voltage9'].append(round(row[11], 2))
+        data['bms2']['voltage10'].append(round(row[12], 2))
+        data['bms2']['voltage11'].append(round(row[13], 2))
+        data['bms2']['voltage12'].append(round(row[14], 2))
+        data['bms2']['temperature1'].append(round(row[15], 2))
+        data['bms2']['temperature2'].append(round(row[16], 2))
+        data['bms2']['nombre'].append('Prueba_' + row[1])
 
     c.execute("SELECT * FROM bms3")
     rows = c.fetchall()
     for row in rows:
-        data['bms3']['timestamp'].append(row[0])
+        data['bms3']['time_stamp'].append(row[0])
         data['bms3']['date'].append(row[1])
         data['bms3']['time'].append(row[2])
-        data['bms3']['voltage1'].append(row[3])
-        data['bms3']['voltage2'].append(row[4])
-        data['bms3']['voltage3'].append(row[5])
-        data['bms3']['voltage4'].append(row[6])
-        data['bms3']['voltage5'].append(row[7])
-        data['bms3']['voltage6'].append(row[8])
-        data['bms3']['voltage7'].append(row[9])
-        data['bms3']['voltage8'].append(row[10])
-        data['bms3']['voltage9'].append(row[11])
-        data['bms3']['voltage10'].append(row[12])
-        data['bms3']['voltage11'].append(row[13])
-        data['bms3']['voltage12'].append(row[14])
-        data['bms3']['temperature1'].append(row[15])
-        data['bms3']['temperature2'].append(row[16])
+        data['bms3']['voltage1'].append(round(row[3], 2))
+        data['bms3']['voltage2'].append(round(row[4], 2))
+        data['bms3']['voltage3'].append(round(row[5], 2))
+        data['bms3']['voltage4'].append(round(row[6], 2))
+        data['bms3']['voltage5'].append(round(row[7], 2))
+        data['bms3']['voltage6'].append(round(row[8], 2))
+        data['bms3']['voltage7'].append(round(row[9], 2))
+        data['bms3']['voltage8'].append(round(row[10], 2))
+        data['bms3']['voltage9'].append(round(row[11], 2))
+        data['bms3']['voltage10'].append(round(row[12], 2))
+        data['bms3']['voltage11'].append(round(row[13], 2))
+        data['bms3']['voltage12'].append(round(row[14], 2))
+        data['bms3']['temperature1'].append(round(row[15], 2))
+        data['bms3']['temperature2'].append(round(row[16], 2))
+        data['bms3']['nombre'].append('Prueba_' + row[1])
 
     conn.commit()
     conn.close()
@@ -201,5 +215,10 @@ if __name__ == '__main__':
     # clean_database()
     data['_id'] = 'Prueba_BaseDatos'
     dataJSON = json.dumps(data)
-    print(dataJSON)
+    API_ENDPOINT = 'https://motostudent2021nodered.eu-gb.mybluemix.net/send_data'
+    headers = {'Content-type': 'application/json'}
+    trial_data = {'hola': 'hola_mundo',
+                  }
+    r = requests.post(url=API_ENDPOINT, data=dataJSON, headers=headers)
+    print(r)
 
