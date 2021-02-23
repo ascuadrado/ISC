@@ -16,6 +16,12 @@ def configure_data():
     data['general']['date'] = []
     data['general']['time'] = []
     data['general']['allOK'] = []
+    data['general']['stateOfCharge'] = []
+    data['general']['sevconConnected'] = []
+    data['general']['chargerConnected'] = []
+    data['general']['bms1Connected'] = []
+    data['general']['bms2Connected'] = []
+    data['general']['bms3Connected'] = []
 
     # Configure the charger dictionary
     data['charger'] = dict()
@@ -24,7 +30,7 @@ def configure_data():
     data['charger']['date'] = []
     data['charger']['time'] = []
     data['charger']['voltage'] = []
-    data['charger']['current'] = []
+    data['charger']['curr'] = []
     data['charger']['flag0'] = []
     data['charger']['flag1'] = []
     data['charger']['flag2'] = []
@@ -37,7 +43,20 @@ def configure_data():
     data['sevcon']['nombre'] = []
     data['sevcon']['date'] = []
     data['sevcon']['time'] = []
-    data['sevcon']['TPD01_1'] = []
+    data['sevcon']['target_id'] = []
+    data['sevcon']['ident'] = []
+    data['sevcon']['target_iq'] = []
+    data['sevcon']['iq'] = []
+    data['sevcon']['battery_voltage'] = []
+    data['sevcon']['battery_current'] = []
+    data['sevcon']['line_contactor'] = []
+    data['sevcon']['capacitor_voltage'] = []
+    data['sevcon']['throttle_value'] = []
+    data['sevcon']['target_torque'] = []
+    data['sevcon']['torque'] = []
+    data['sevcon']['heatsink_temp'] = []
+    data['sevcon']['maximum_motor_speed'] = []
+    data['sevcon']['velocity'] = []
 
     # Configure bms1 Dictionary
     data['bms1'] = dict()
@@ -113,6 +132,12 @@ def read_from_database():
         data['general']['date'].append(row[1])
         data['general']['time'].append(row[2])
         data['general']['allOK'].append(row[3])
+        data['general']['stateOfCharge'].append(row[4])
+        data['general']['sevconConnected'].append(row[5])
+        data['general']['chargerConnected'].append(row[6])
+        data['general']['bms1Connected'].append(row[7])
+        data['general']['bms2Connected'].append(row[8])
+        data['general']['bms3Connected'].append(row[9])
         data['general']['nombre'].append('Prueba_' + row[1])
 
     c.execute("SELECT * FROM charger")
@@ -122,7 +147,7 @@ def read_from_database():
         data['charger']['date'].append(row[1])
         data['charger']['time'].append(row[2])
         data['charger']['voltage'].append(row[3])
-        data['charger']['current'].append(row[4])
+        data['charger']['curr'].append(row[4])
         data['charger']['flag0'].append(row[5])
         data['charger']['flag1'].append(row[6])
         data['charger']['flag2'].append(row[7])
@@ -136,7 +161,20 @@ def read_from_database():
         data['sevcon']['time_stamp'].append(row[0])
         data['sevcon']['date'].append(row[1])
         data['sevcon']['time'].append(row[2])
-        data['sevcon']['TPD01_1'].append(row[3])
+        data['sevcon']['target_id'].append(row[3])
+        data['sevcon']['ident'].append(row[4])
+        data['sevcon']['target_iq'].append(row[5])
+        data['sevcon']['iq'].append(row[6])
+        data['sevcon']['battery_voltage'].append(row[7])
+        data['sevcon']['battery_current'].append(row[8])
+        data['sevcon']['line_contactor'].append(row[9])
+        data['sevcon']['capacitor_voltage'].append(row[10])
+        data['sevcon']['throttle_value'].append(row[11])
+        data['sevcon']['target_torque'].append(row[12])
+        data['sevcon']['torque'].append(row[13])
+        data['sevcon']['heatsink_temp'].append(row[14])
+        data['sevcon']['maximum_motor_speed'].append(row[15])
+        data['sevcon']['velocity'].append(row[16])
         data['sevcon']['nombre'].append('Prueba_' + row[1])
 
     c.execute("SELECT * FROM bms1")
