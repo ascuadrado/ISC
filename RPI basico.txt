@@ -34,14 +34,19 @@ Clone github:
 
 git clone https://github.com/ascuadrado/ISC
 
+Prepare proper file structure: 
+
+cp -R ISC/Rasp-main .
+cp -R ISC/Processing/sketch_0_test .
+
 Send files over ssh:
 
-scp -r /Users/ascuadrado/Dropbox/ICAI/ISC/ISC/Processing/sketch_0_test pi@betoberry.local:Desktop
-scp -r /Users/ascuadrado/Dropbox/ICAI/ISC/ISC/Rasp-main pi@betoberry.local:Desktop
+scp -r /Users/ascuadrado/Dropbox/ICAI/ISC/ISC/Processing/sketch_0_test pi@iscms.local:Desktop
+scp -r /Users/ascuadrado/Dropbox/ICAI/ISC/ISC/Rasp-main pi@iscms.local:Desktop
 
 Receive files over ssh
 
-scp -r pi@betoberry.local:Desktop /Users/ascuadrado/Desktop
+scp -r pi@iscms.local:Desktop /Users/ascuadrado/Desktop
 
 Remove rpi files:
 rm -r Desktop/sketch_0_test
